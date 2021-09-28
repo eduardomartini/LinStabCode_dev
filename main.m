@@ -18,8 +18,8 @@ kappa = 1.4;
 % Arnoldi settings
 noEigs          = 10;
 
-xRange = [-1.5,-.5] ; nx =  120;
-yRange = [0,1]     ; ny =  30;
+xRange = [-1.5,-.5] ; nx =  100;
+yRange = [0,1]     ; ny =  50;
 
 FDorder=4;
 useSimmetry=true;
@@ -31,14 +31,19 @@ Y=mesh.Y; dy=Y(2,2)-Y(1,1);
 
 mask =  (mesh.X<-1 & mesh.X<-.6 & mesh.Y>.75 ) | ...
        (mesh.X>-1.3 & mesh.X<-1.1 & mesh.Y<.35 )  ;
-n=2;
 % mask = ( (mesh.X-min(mesh.X(:))) - 1*(mesh.Y-mesh.Y(n+1,1)) < 0  ) ;
+
+%workwround not to have line with too few points...
+n=2;
 mask(1:n,:)=repmat(mask(n+1,:),n,1);
 % mask(end+1-(1:n),:)=repmat(mask(end-n,:),n,1);
 
-mask(:)=0; 
+% mask(:)=0; 
 
 [mesh,maskedge] = MeshMask(mesh,mask);
+
+
+% [mesh,maskedge] = MeshMask(mesh,mask*0);
 
 indexes.bottom    = find(Y(mesh.usedInd)<min(Y(:))+dy/2);
 indexes.top       = find(Y(mesh.usedInd)>max(Y(:))-dy/2);
@@ -65,7 +70,7 @@ subplot(212)
 figure
     plot(mesh.X(mesh.usedInd),mesh.Y(mesh.usedInd),'k.');
     hold on;
-    plot(mesh.X(mesh.usedInd(maskedge)),mesh.Y(mesh.usedInd(maskedge)),'ob');
+    plot(mesh.X(mesh.usedInd(maskedge)),mesh.Y(mesh.usedInd(maskedge)),'oc');
     plot(mesh.X(mesh.usedInd(indexes.top)),mesh.Y(mesh.usedInd(indexes.top)),'or');
     plot(mesh.X(mesh.usedInd(indexes.left)),mesh.Y(mesh.usedInd(indexes.left)),'og');
 
@@ -109,12 +114,7 @@ mesh=defmesh;
 %% Set base flow
 disp('Setting baseflow...');
 
-if Re>=1e3
-    nekFile=sprintf('bf_meshNL_Re%.0fk.fld',Re/1e3);
-else
-    nekFile=sprintf('bf_meshNL_Re%.1fk.fld',Re/1e3);
-end
-% nekFile='paraboloidFlow_Re5k.fld';
+nekFile='bf_meshNL_Re30k.fld';
 
 data = readnek(nekFile);
 Xnek = data(:,:,1);
@@ -159,15 +159,8 @@ f_inf01 = @(x) (1+f_inf(x*pi/2))/2;
 
 sponge_ =  (1-f_inf01((dist1-thick1)/trans1-1))*spg_str + ...
           (1-f_inf01((dist2-thick1)/trans1-1))*spg_str ;
-sponge=sponge_*nan;
+sponge=zeros(size(sponge_));
 sponge(mesh.usedInd)=sponge_(mesh.usedInd);
-
-figure
-    contourf(mesh.X,mesh.Y,sponge);colorbar
-    hold on;
-    plot(X(:),Y(:),'.w','Markersize',1)
-
-    daspect([1,1,1]);
 
 %% 
 % abort
@@ -180,11 +173,11 @@ DirBCind=unique([indexes.top;
                  maskedge]);
              
 figure;
-    plot(mesh.X(:),mesh.Y(:),'.k', ...
-         mesh.X(mesh.usedInd(DirBCind)),mesh.Y(mesh.usedInd(DirBCind)),'or');   
-     hold on;
-     contourf(mesh.X,mesh.Y,sponge)
-
+     contourf(mesh.X,mesh.Y,sponge);
+     hold on
+     plot(mesh.X(:),mesh.Y(:),'.k', ...
+          mesh.X(mesh.usedInd(DirBCind)),mesh.Y(mesh.usedInd(DirBCind)),'or');   
+     
 DirBCind=DirBCind+[1,2,3,4]*mesh.ngp;
 
 DirBCind=DirBCind(:);
