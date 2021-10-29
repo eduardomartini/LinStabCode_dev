@@ -1,4 +1,4 @@
-function mesh = CreateRectangularMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
+function mesh = CreateRectangularPeriodicMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     % mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     % Creates uniform rectangular mesh from with ranges defined by Xrange
     % and Yrange, and Nx and Ny points in each direction. Finite difference
@@ -23,7 +23,11 @@ function mesh = CreateRectangularMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     x = x(1:end-1);
     y = linspace(yrange(1),yrange(2),Ny)';
     
-    dx = x(2)-x(1);
+    if Nx == 1
+        dx=1
+    else
+        dx = x(2)-x(1);
+    end
     dy = y(2)-y(1);
 
     [X,Y]  = meshgrid(x,y);
@@ -33,24 +37,28 @@ function mesh = CreateRectangularMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     % 1D x derivative
     
     %Create matri to impose periodicity
-    B = sparse(Nx,Nx+FDorder*2);
-    for i=1:Nx
-        B(i,i+FDorder)=1;
-    end
-    for i=1:FDorder
-        B(end+(i-1)-(FDorder-1),i)=1;
-        B(i,end+(i-1)-(FDorder-1))=1;
-        
-    end   
-    %%
-    [Dx_1D,D2x_1D,~,~,~,~]                                         = Dmats_SBP(Nx+FDorder*6,dx,FDorder);
-    Dx_1D_periodic = Dx_1D ( (1:Nx)+FDorder*2,(1:Nx+FDorder*2)+FDorder);
-    Dx_2D_periodic = D2x_1D( (1:Nx)+FDorder*2,(1:Nx+FDorder*2)+FDorder);
-    
-    
-    Dx_1D = Dx_1D_periodic *B';
-    D2x_1D= Dx_2D_periodic *B';
+    if Nx == 1 
+        Dx_1D  = 0;
+        D2x_1D = 0;
+    else
+        B = sparse(Nx,Nx+FDorder*2);
+        for i=1:Nx
+            B(i,i+FDorder)=1;
+        end
+        for i=1:FDorder
+            B(end+(i-1)-(FDorder-1),i)=1;
+            B(i,end+(i-1)-(FDorder-1))=1;
 
+        end   
+        %%
+        [Dx_1D,D2x_1D,~,~,~,~]                                         = Dmats_SBP(Nx+FDorder*6,dx,FDorder);
+        Dx_1D_periodic = Dx_1D ( (1:Nx)+FDorder*2,(1:Nx+FDorder*2)+FDorder);
+        Dx_2D_periodic = D2x_1D( (1:Nx)+FDorder*2,(1:Nx+FDorder*2)+FDorder);
+
+
+        Dx_1D = Dx_1D_periodic *B';
+        D2x_1D= Dx_2D_periodic *B';
+    end
     
     % 1D y derivative
     [Dy_1D,D2y_1D,Dy_1D_symm,Dy_1D_asymm,D2y_1D_symm,D2y_1D_asymm] = Dmats_SBP(Ny,dy,FDorder);
@@ -78,21 +86,19 @@ function mesh = CreateRectangularMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     indexes.left      = find(X(:)<min(X(:))+dx/2);
     indexes.right     = find(X(:)>max(X(:))-dx/2);
    
-    domains.n = 1;
-    domains.X = {X};
-    domains.Y = {Y};
-    domains.indexes = {1:numel(X)};
     
     
     % Pack outputs
-    mesh=struct('x',x,'y',y,'X',X,'Y',Y,'indexes',indexes,'domains',domains);
+    mesh=struct('X',X,'Y',Y);
     for names = who('D*')' 
-        eval([ 'mesh.' names{1} '=' names{1} ';' ]);
+        eval([ 'mesh.DW.' names{1} '=' names{1} ';' ]);
     end
-    
-    mesh.W = ones(size(X))*dx*dy;
-    for p={indexes.top}
-        mesh.W(p{1})=mesh.W(p{1})/2;
+    mesh.usedInd = (1:numel(X))';
+    mesh.ngp = numel(X);
+
+    mesh.DW.W = ones(size(X))*dx*dy;
+    for p={indexes.top,indexes.bottom}
+        mesh.DW.W(p{1})=mesh.DW.W(p{1})/2;
     end
     mesh.nGridPoints=numel(X);
     

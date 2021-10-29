@@ -1,4 +1,4 @@
-function  DW = CreateDW(mesh,FDorder)
+function  DW = CreateDW(mesh,periodic)
 %CREATEDW Summary of this function goes here
 %   Detailed explanation goes here
     if ~exist('FDorder')
@@ -9,9 +9,24 @@ function  DW = CreateDW(mesh,FDorder)
         end
     end
     
-    N=mesh.ngp;
-    [NX,NY] = size(mesh.X);
+    if ~periodic
+    else
+        %extend the domain FDorder points on both sides, keeping mask and
+        %all
+        [NY,NX] = size(mesh.X);
+        mesh_bak = mesh;
+
+        dx = mesh.X(2,2)-mesh.X(1,1);
+        mesh.X = [mesh.X(:,end-FDorder+1:end)-NX*dx,mesh.X,mesh.X(:,1:FDorder)+NX*dx];
+        mesh.Y = [mesh.Y(:,end-FDorder+1:end)      ,mesh.Y,mesh.Y(:,1:FDorder)      ];
+
+        mesh.ngp = numel(mesh.X);
+        mesh.usedInd = 1:mesh.ngp;
+    end
     
+    N=mesh.ngp;
+    [NY,NX] = size(mesh.X);
+
     Dx       = sparse(N,N);
     D2x      = sparse(N,N);
     Dy       = sparse(N,N);
@@ -40,7 +55,6 @@ function  DW = CreateDW(mesh,FDorder)
     ySym = dy/2;
     
     % Create X derivative Matrices
-    
     for y = yList'
         % find all used points with a given x coordinate. 
         pos = find(Y==y);
@@ -51,6 +65,7 @@ function  DW = CreateDW(mesh,FDorder)
         
         %find holes 
         xl=X(pos);
+       
         dx_line=(xl(2:end)-xl(1:end-1))/dx;
         domList = [0;find(dx_line>1.5);length(xl)];
         
@@ -58,12 +73,12 @@ function  DW = CreateDW(mesh,FDorder)
         for idom = 1:length(domList)-1
            
             dom = domList(idom)+1:domList(idom+1);
-            Nx  = length(dom);
+            NX  = length(dom);
             
             dom = domList(idom)+1:domList(idom+1);
-            if Nx<2
+            if NX<2
                 error('CreateDW : Cannot construct derivative with less than three points!')
-            elseif Nx<FDorder+1
+            elseif NX<FDorder+1
                 FDorder_curr = 2;
             else
                 FDorder_curr=FDorder;
@@ -71,7 +86,7 @@ function  DW = CreateDW(mesh,FDorder)
             
             [   Dx_1D     ,D2x_1D     , ...
                 ~         ,     ~     , ...
-                ~         ,     ~      ] = Dmats_SBP(Nx,dx,FDorder_curr);
+                ~         ,     ~      ] = Dmats_SBP(NX,dx,FDorder_curr);
         
             dom_pos = pos(dom);
             Dx      (dom_pos,dom_pos) = Dx_1D        ;
@@ -149,10 +164,59 @@ function  DW = CreateDW(mesh,FDorder)
                 W_symm (meshpos([1,end]))  = W_symm (meshpos([1,end]))/2;
                 W_asymm(meshpos)           = W_asymm(meshpos)*dx;
                 W_asymm(meshpos([1,end]))  = W_asymm(meshpos([1,end]))/2;
+            end
         end
     end
     
     
+
+    if periodic
+        %impose periodicity and remove peridic extension
+        xlim=[mesh_bak.X(1,1),mesh_bak.X(end,end)];    
+
+        dom = find( mesh.X>=xlim(1) & mesh.X<=xlim(2) );
+        
+        Nx=NX-FDorder*2;
+        %Create matrix to impose periodicity
+        B = sparse(Nx,Nx+FDorder*2);
+        for i=1:Nx
+            B(i,i+FDorder)=1;
+        end
+        for i=1:FDorder
+            B(end+(i-1)-(FDorder-1),i)=1;
+            B(i,end+(i-1)-(FDorder-1))=1;
+
+        end 
+        BB = sparse(kron(B,speye((Ny))));
+%         Dx  = Dx(dom,:)*BB';
+%         D2x = D2x(dom,:)*BB';
+        Dx  = Dx(dom,dom);
+        D2x = D2x(dom,dom);
+
+        
+        
+        Dy          = Dy (dom,dom);
+        D2y         = D2y(dom,dom);
+        Dy_symm     = Dy_symm(dom,dom);
+        D2y_symm    = D2y_symm(dom,dom);
+        Dy_asymm    = Dy_asymm(dom,dom);
+        D2y_asymm   = D2y_asymm(dom,dom);
+        
+        W           = W(dom);
+        W_symm      = W_symm(dom);
+        W_asymm     = W_asymm(dom);
+        
+        [NY,NX]=size(mesh_bak.X);
+
+        W       = reshape(W         ,NY,NX);
+        W_symm  = reshape(W_symm    ,NY,NX);
+        W_asymm = reshape(W_asymm   ,NY,NX);
+
+    end
+
+    %finalize with mixed second derivatives
+    DW.Dxy = Dx*Dy ; 
+    DW.Dyx = Dy*Dx ; 
     
     DW.Dx  = Dx ; 
     DW.D2x = D2x; 
@@ -160,8 +224,6 @@ function  DW = CreateDW(mesh,FDorder)
     DW.Dy  = Dy ;
     DW.D2y = D2y; 
     
-    DW.Dxy = Dx*Dy ; 
-    DW.Dyx = Dy*Dx ; 
     
     DW.W   = W ; 
 
@@ -170,14 +232,8 @@ function  DW = CreateDW(mesh,FDorder)
         DW.Dy_symm  = Dy_symm ;
         DW.D2y_symm = D2y_symm; 
 
-        DW.Dxy_symm = Dx*Dy_symm ; 
-        DW.Dyx_symm = Dy_symm*Dx ; 
-
         DW.Dy_asymm  = Dy_asymm ;
         DW.D2y_asymm = D2y_asymm; 
-
-        DW.Dxy_asymm = Dx*Dy_asymm ; 
-        DW.Dyx_asymm = Dy_asymm*Dx ; 
 
         DW.W_symm    = W_symm ; 
         DW.W_asymm   = W_asymm ; 
@@ -186,20 +242,12 @@ function  DW = CreateDW(mesh,FDorder)
         DW.Dy_symm  = Dy ;
         DW.D2y_symm = D2y; 
 
-        DW.Dxy_symm = Dx*Dy; 
-        DW.Dyx_symm = Dy*Dx ; 
-
         DW.Dy_asymm  = Dy;
         DW.D2y_asymm = D2y; 
 
-        DW.Dxy_asymm = Dx*Dy; 
-        DW.Dyx_asymm = Dy*Dx ; 
-        
         DW.W_symm    = W; 
         DW.W_asymm   = W; 
         
     end
-    
-
 end
 

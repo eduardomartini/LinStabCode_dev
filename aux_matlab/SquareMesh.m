@@ -1,4 +1,4 @@
-function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
+function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry,periodic)
     % mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     % Creates uniform rectangular mesh from with ranges defined by Xrange
     % and Yrange, and Nx and Ny points in each direction. Finite difference
@@ -20,20 +20,20 @@ function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     x = linspace(xrange(1),xrange(2),Nx)';
     y = linspace(yrange(1),yrange(2),Ny)';
     
-    dx = x(2)-x(1);
-    dy = y(2)-y(1);
+%     dx = x(2)-x(1);
+%     dy = y(2)-y(1);
 
     [X,Y]  = meshgrid(x,y);
     originalStructure=size(X);    
     
     % Prepare output
-    mesh.X                 = X          ;
-    mesh.Y                 = Y          ;
-    mesh.ngp               = numel(X)   ;
-    mesh.usedInd           = 1:numel(X) ;
-    mesh.symmetricBC       = useSymmetry;
-    mesh.FDorder           = FDorder;
+    mesh.X                 = X              ;
+    mesh.Y                 = Y              ;
+    mesh.ngp               = numel(X)       ;
+    mesh.usedInd           = (1:numel(X))'  ;
+    mesh.symmetricBC       = useSymmetry    ;
+    mesh.FDorder           = FDorder        ;
 
-    mesh.DW=CreateDW(mesh);
+    mesh.DW=CreateDW(mesh,periodic);
 
 
