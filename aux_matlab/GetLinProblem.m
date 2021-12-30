@@ -1,4 +1,4 @@
-function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
+function LinProb = GetLinProblem(mesh,BF,sponge,model)
     % [LHS,RHS] = GetLHSRHS(mesh,BF,m,Re,sponge)
     % Creates LHS and RHS operators of the LNS equations, such that
     % LHS dq/dt = RHS q , q=[rho,u,v,w,T].
@@ -49,8 +49,6 @@ function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
     I = ones(nGridPoints, 1);
     R = reshape(r, nGridPoints, 1);
 
-    %Sponge matrix
-    Asponge = spdiags( [sponge(:);sponge(:);sponge(:);sponge(:);sponge(:)],0,nGridPoints*5,nGridPoints*5);
         
     %% COMPUTE BASEFLOW DERIVATIVES
     tic
@@ -78,9 +76,9 @@ function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
     
     %get coefficients
     if strcmp(model,'2D')
-        Ma=BF.Ma;
-        Pr=BF.Pr;
-        kz = kzm;
+        Ma  = BF.Ma;
+        Pr  = BF.Pr;
+        kz  = BF.kz;
         NrNz=nGridPoints;
         DR  =blkdiag(Dr ,Dr ,Dr ,Dr ,Dr );
         D2R =blkdiag(D2r,D2r,D2r,D2r,D2r);
@@ -89,7 +87,8 @@ function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
         D2RZ=blkdiag(Dzr,Dzr,Dzr,Dzr,Dzr);
         getCoeffsLaminar_Cartesian
     else
-        m=kzm;
+        m=BF.m;
+        Re = BF.Re;
         [DR,D2R,DZ,D2Z,D2RZ,D2ZR] =   CreateDiffMatrices_Axy(mesh,m);
         getCoeffsLaminar
     end
@@ -161,53 +160,20 @@ function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
         ];
 
     %% Construct the operator
-%     LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*DR*DZ - Asponge;
-    LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*D2RZ;% - Asponge*(RHS/1i);
+    LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*D2RZ;
     
     %% Construct the varibles and boundary indexes.
     % Row indices for primitive variables
     indexes = struct();
 
-%     indexes.li = indexes.left;
-%     indexes.ri = indexes.right; 
-%     indexes.bi = indexes.bottom;
-%     indexes.ti = indexes.top;
-
-%     indexes.ti_rho  = indexes.ti;
-%     indexes.bi_rho  = indexes.bi;
-%     indexes.ri_rho  = indexes.ri;
-%     indexes.li_rho  = indexes.li;
-% 
-%     indexes.ti_u    = indexes.ti   + nGridPoints;
-%     indexes.bi_u    = indexes.bi   + nGridPoints;
-%     indexes.ri_u    = indexes.ri   + nGridPoints;
-%     indexes.li_u    = indexes.li   + nGridPoints;
-% 
-%     indexes.ti_v    = indexes.ti   + 2*nGridPoints;
-%     indexes.bi_v    = indexes.bi   + 2*nGridPoints;
-%     indexes.ri_v    = indexes.ri   + 2*nGridPoints;
-%     indexes.li_v    = indexes.li   + 2*nGridPoints;
-% 
-%     indexes.ti_w    = indexes.ti   + 3*nGridPoints;
-%     indexes.bi_w    = indexes.bi   + 3*nGridPoints;
-%     indexes.ri_w    = indexes.ri   + 3*nGridPoints;
-%     indexes.li_w    = indexes.li   + 3*nGridPoints;
-% 
-%     indexes.ti_T    = indexes.ti   + 4*nGridPoints;
-%     indexes.bi_T    = indexes.bi   + 4*nGridPoints;
-%     indexes.ri_T    = indexes.ri   + 4*nGridPoints;
-%     indexes.li_T    = indexes.li   + 4*nGridPoints;
-% 
-%     indexes.ti_all  = [indexes.ti_rho,indexes.ti_T, ...
-%                        indexes.ti_u,indexes.ti_v,indexes.ti_w];
-%     indexes.bi_all  = [indexes.bi_rho,indexes.bi_T, ...
-%                        indexes.bi_u,indexes.bi_v,indexes.bi_w];
-%     indexes.ri_all  = [indexes.ri_rho,indexes.ri_T, ...
-%                        indexes.ri_u,indexes.ri_v,indexes.ri_w];
-%     indexes.li_all  = [indexes.li_rho,indexes.li_T, ...
-%                        indexes.li_u,indexes.li_v,indexes.li_w];
-
     
+    nDOFs = mesh.ngp * 5;
+    %Sponge matrix
+    SPONGE = repmat(sponge(mesh.usedInd),5,1);
+    SPONGE = spdiags( SPONGE ,0,nDOFs,nDOFs);
+
+    A      = -(RHS/1i)\LHS + SPONGE;
+  
     % Column indices for conserved variables
     indexes.rho_j   =        1        :   nGridPoints;
     indexes.u_j     =   nGridPoints+1 : 2*nGridPoints;
@@ -215,6 +181,30 @@ function [LHS,RHS,indexes] = GetLHSRHS_axy(mesh,BF,kzm,Re,sponge,model)
     indexes.w_j     = 3*nGridPoints+1 : 4*nGridPoints;
     indexes.T_j     = 4*nGridPoints+1 : 5*nGridPoints;
     
-% 
-%     time    = toc;
-%     disp(['    elapsed time - Coefficient matrices: ' datestr(time/24/3600, 'HH:MM:SS')]);
+    LinProb.A      =  A;
+    LinProb.indexes =  indexes;
+
+    %% Set Filter
+    
+    ngp     = mesh.ngp;
+    
+    LinProb.FILTER    = @(x) [  mesh.Filters.filter(    x( (1:ngp)+ngp*0) )  ; ...
+                                mesh.Filters.filter(    x( (1:ngp)+ngp*1) )  ; ...
+                                mesh.Filters.filter(    x( (1:ngp)+ngp*2) )  ; ...
+                                mesh.Filters.filter(    x( (1:ngp)+ngp*3) )  ; ...
+                                mesh.Filters.filter(    x( (1:ngp)+ngp*4) )   ] ;
+
+    LinProb.FILTER_ct = @(x) [  mesh.Filters.filter_ct( x( (1:ngp)+ngp*0) ) ; 
+                                mesh.Filters.filter_ct( x( (1:ngp)+ngp*1) ) ;
+                                mesh.Filters.filter_ct( x( (1:ngp)+ngp*2) ) ;
+                                mesh.Filters.filter_ct( x( (1:ngp)+ngp*3) ) ;
+                                mesh.Filters.filter_ct( x( (1:ngp)+ngp*4) )   ] ;
+    
+      
+    %%
+    
+    
+    %%
+ 
+     time    = toc;
+     disp(['    elapsed time - Coefficient matrices: ' datestr(time/24/3600, 'HH:MM:SS')]);

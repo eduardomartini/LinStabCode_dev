@@ -14,5 +14,17 @@ function [maskedMesh,edges] = MeshMask(mesh,mask)
     maskedge(:,1:end-1) =  maskedge(:,1:end-1)+mask(:,2:end  );
 
     edges = find(maskedge(maskedMesh.usedInd)>0);
+    
+    %% Update filter
+    if mesh.alpga_filter=='none'
+        %no filtering
+        filter    = @(x) x;
+        filter_ct = @(x) x;        
+    else
+        [filter,filter_ct]  = GetFilter(mesh,alpha_filter);
+    end
+    mesh.Filters.filter    =  filter    ;
+    mesh.Filters.filter_ct =  filter_ct ;
+
 end
 

@@ -9,8 +9,7 @@ function  DW = CreateDW(mesh,periodic)
         end
     end
     
-    if ~periodic
-    else
+    if periodic
         %extend the domain FDorder points on both sides, keeping mask and
         %all
         [NY,NX] = size(mesh.X);
@@ -36,12 +35,15 @@ function  DW = CreateDW(mesh,periodic)
     Dy_asymm = sparse(N,N);
     D2y_asymm= sparse(N,N);
     
-    W       = zeros (NX,NY); 
-    W_symm  = zeros (NX,NY); 
-    W_asymm = zeros (NX,NY); 
+    W       = zeros (NY,NX); 
     W      (mesh.usedInd)=1;
-    W_symm (mesh.usedInd)=1;
-    W_asymm(mesh.usedInd)=1;
+    
+    if mesh.symmetricBC
+        W_symm  = zeros (NY,NX); 
+        W_asymm = zeros (NY,NX); 
+        W_symm (mesh.usedInd)=1;
+        W_asymm(mesh.usedInd)=1;
+    end
     
     X = mesh.X(mesh.usedInd);
     Y = mesh.Y(mesh.usedInd);
@@ -150,20 +152,12 @@ function  DW = CreateDW(mesh,periodic)
                 D2y_symm (dom_pos,dom_pos) = D2y_1D_sym   ;
                 Dy_asymm (dom_pos,dom_pos) = Dy_1D_asym   ;
                 D2y_asymm(dom_pos,dom_pos) = D2y_1D_asym  ;
+                
                 W_symm (meshpos)           = W_symm (meshpos)*dx;
                 W_symm (meshpos(end))      = W_symm (meshpos(end))/2;
                 W_asymm(meshpos)           = W_asymm(meshpos)*dx;
                 W_asymm(meshpos( 1 ))      = W_asymm(meshpos( 1 )).*3/4;
                 W_asymm(meshpos(end))      = W_asymm(meshpos(end))  ./2;
-            else
-                Dy_symm  (dom_pos,dom_pos) = Dy_1D        ;
-                D2y_symm (dom_pos,dom_pos) = D2y_1D       ;
-                Dy_asymm (dom_pos,dom_pos) = Dy_1D        ;
-                D2y_asymm(dom_pos,dom_pos) = D2y_1D       ;
-                W_symm (meshpos)           = W_symm (meshpos)*dx;
-                W_symm (meshpos([1,end]))  = W_symm (meshpos([1,end]))/2;
-                W_asymm(meshpos)           = W_asymm(meshpos)*dx;
-                W_asymm(meshpos([1,end]))  = W_asymm(meshpos([1,end]))/2;
             end
         end
     end
@@ -235,19 +229,15 @@ function  DW = CreateDW(mesh,periodic)
         DW.Dy_asymm  = Dy_asymm ;
         DW.D2y_asymm = D2y_asymm; 
 
+        DW.Dxy_asymm = Dy_asymm*Dx; 
+        DW.Dyx_asymm = Dx*Dy_asymm; 
+
+        DW.Dxy_symm = Dy_symm*Dx; 
+        DW.Dyx_symm = Dx*Dy_symm; 
+
+        
         DW.W_symm    = W_symm ; 
         DW.W_asymm   = W_asymm ; 
-
-    else
-        DW.Dy_symm  = Dy ;
-        DW.D2y_symm = D2y; 
-
-        DW.Dy_asymm  = Dy;
-        DW.D2y_asymm = D2y; 
-
-        DW.W_symm    = W; 
-        DW.W_asymm   = W; 
-        
     end
 end
 

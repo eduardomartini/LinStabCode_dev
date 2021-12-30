@@ -1,4 +1,4 @@
-function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry,periodic)
+function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry,periodic,alpha_filter)
     % mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry)
     % Creates uniform rectangular mesh from with ranges defined by Xrange
     % and Yrange, and Nx and Ny points in each direction. Finite difference
@@ -20,8 +20,6 @@ function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry,periodic)
     x = linspace(xrange(1),xrange(2),Nx)';
     y = linspace(yrange(1),yrange(2),Ny)';
     
-%     dx = x(2)-x(1);
-%     dy = y(2)-y(1);
 
     [X,Y]  = meshgrid(x,y);
     originalStructure=size(X);    
@@ -34,6 +32,26 @@ function mesh = SquareMesh(xrange,yrange,Nx,Ny,FDorder,useSymmetry,periodic)
     mesh.symmetricBC       = useSymmetry    ;
     mesh.FDorder           = FDorder        ;
 
+    % Create dif matrices and int weights
     mesh.DW=CreateDW(mesh,periodic);
 
 
+    %create low-pass filter
+    if ~exist('alpha_filter')
+        %no filtering
+        mesh.alpga_filter='none'
+        filter    = @(x) x;
+        filter_ct = @(x) x;        
+    else
+        mesh.alpga_filter=alpha_filter;
+        [filter,filter_ct]  = GetFilter(mesh,alpha_filter);
+    end
+    mesh.Filters.filter    =  filter    ;
+    mesh.Filters.filter_ct =  filter_ct ;
+    
+    % get boundary indexes
+    indexes.bottom    = find(Y(mesh.usedInd)==min(Y(:)));
+    indexes.top       = find(Y(mesh.usedInd)==max(Y(:)));
+    indexes.left      = find(X(mesh.usedInd)==min(X(:)));
+    indexes.right     = find(X(mesh.usedInd)==max(X(:)));
+    mesh.indexes=indexes;
