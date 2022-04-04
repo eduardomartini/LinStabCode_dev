@@ -9,32 +9,32 @@ pipe_idx_bottom     = [];
 pipe_idx_top        = [];
 
 % [Nr,Nz] = size(mesh.X);
-ndofs=size(mesh.DW.Dx,1);
+ngp=mesh.ngp;
 
 z = mesh.X;
 r = mesh.Y;
 
-Dz = mesh.DW.Dx;
-Dr = mesh.DW.Dy;
-Dr_symm  = mesh.DW.Dy_symm;       
-Dr_asymm = mesh.DW.Dy_asymm;     
+Dz = mesh.Dx;
+Dr = mesh.Dy;
+Dr_symm  = mesh.Dy_symm;       
+Dr_asymm = mesh.Dy_asymm;     
 
-D2z         = mesh.DW.D2x;
-D2r         = mesh.DW.D2y;
-D2r_symm    = mesh.DW.D2y_symm;       
-D2r_asymm   = mesh.DW.D2y_asymm;     
+D2z         = mesh.D2x;
+D2r         = mesh.D2y;
+D2r_symm    = mesh.D2y_symm;       
+D2r_asymm   = mesh.D2y_asymm;     
 
-D2zr         = mesh.DW.Dxy;
-D2rz         = mesh.DW.Dyx;
-D2zr_symm    = mesh.DW.Dxy_symm;       
-D2rz_symm    = mesh.DW.Dyx_symm;       
-D2rz_asymm   = mesh.DW.Dxy_asymm;       
-D2zr_asymm   = mesh.DW.Dyx_asymm;       
+D2zr         = mesh.Dxy;
+D2rz         = mesh.Dyx;
+D2zr_symm    = mesh.Dxy_symm;       
+D2rz_symm    = mesh.Dyx_symm;       
+D2rz_asymm   = mesh.Dxy_asymm;       
+D2zr_asymm   = mesh.Dyx_asymm;       
 
 
 %%
 calcMethod='';
-Z = 0*speye(ndofs,ndofs); % need a zero diagonal sparse matrix... is there a better way?
+Z = 0*speye(ngp,ngp); % need a zero diagonal sparse matrix... is there a better way?
 
 % r dependent derivatives (depend on symmetry)
 if  m==0

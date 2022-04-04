@@ -1,9 +1,18 @@
 function [Wen,invWen] = GetXuEnergyNorm(mesh,BF,model)
+    % [Wen,invWen] = GetXuEnergyNorm(mesh,BF,model)
+    % Computes the Chu energy norm, and its inverse matrix
+    % Inputs : 
+    %   mesh : mesh structure
+    %   BF   : Baseflow structure
+    %   model: model used, '2D' or 'axysymmetric'
+    % Outputs: 
+    %   Wen,invEn  : Xu energy norm matrix, already containing the integration
+    %               weights, and its inverse.
 
 if model == 'axy'
-    intWeight = mesh.DW.W .*mesh.Y; %int () r dr dz
+    intWeight = mesh.W .*mesh.Y; %int () r dr dz
 elseif  model == '2D'
-    intWeight = mesh.DW.W ; %int () dy dz
+    intWeight = mesh.W ; %int () dy dz
 end    
 
 p=mesh.usedInd;

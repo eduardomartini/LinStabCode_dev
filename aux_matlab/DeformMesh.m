@@ -2,24 +2,18 @@ function [defMesh] = DeformMesh(mesh,X2,Y2)
     % newMesh = DeformMesh(mesh,X2,Y2)
     % Deforms the 'mesh' object to the coordinates given by X2 and Y2.
     % Derivative matrices and integration weights are updated accordinly. 
-    if isfield(mesh,'originalMesh')
-        mesh=mesh.originalMesh;
-    end
     
     defMesh                 = mesh;
     defMesh.X               = X2;
     defMesh.Y               = Y2;
-    defMesh.originalMesh    = mesh;
     
     X1 = mesh.X;
     Y1 = mesh.Y;
     
-    
-    
-    mDx  = mesh.DW.Dx;
-    mD2x = mesh.DW.D2x;
-    mDy  = mesh.DW.Dy;
-    mD2y = mesh.DW.D2y;
+    mDx  = mesh.Dx;
+    mD2x = mesh.D2x;
+    mDy  = mesh.Dy;
+    mD2y = mesh.D2y;
     
     %% Construct new mesh and prepare diff matrices to be transformed
 
@@ -28,21 +22,20 @@ function [defMesh] = DeformMesh(mesh,X2,Y2)
     X2 = X2(mesh.usedInd);
     Y2 = Y2(mesh.usedInd);
     
-    
-    Dx          = mesh.DW.Dx;
-    D2x         = mesh.DW.D2x;
-    Dy          = mesh.DW.Dy;
-    Dy_symm     = mesh.DW.Dy_symm;
-    Dy_asymm    = mesh.DW.Dy_asymm;
-    D2y         = mesh.DW.D2y;
-    D2y_symm    = mesh.DW.D2y_symm;
-    D2y_asymm   = mesh.DW.D2y_asymm;
-    Dxy         = mesh.DW.Dxy;
-    Dxy_symm    = mesh.DW.Dxy_symm;
-    Dxy_asymm   = mesh.DW.Dxy_asymm;
-    Dyx         = mesh.DW.Dyx;
-    Dyx_symm    = mesh.DW.Dyx_symm;
-    Dyx_asymm   = mesh.DW.Dyx_asymm;
+    Dx          = mesh.Dx;
+    D2x         = mesh.D2x;
+    Dy          = mesh.Dy;
+    Dy_symm     = mesh.Dy_symm;
+    Dy_asymm    = mesh.Dy_asymm;
+    D2y         = mesh.D2y;
+    D2y_symm    = mesh.D2y_symm;
+    D2y_asymm   = mesh.D2y_asymm;
+    Dxy         = mesh.Dxy;
+    Dxy_symm    = mesh.Dxy_symm;
+    Dxy_asymm   = mesh.Dxy_asymm;
+    Dyx         = mesh.Dyx;
+    Dyx_symm    = mesh.Dyx_symm;
+    Dyx_asymm   = mesh.Dyx_asymm;
         
     %% Compute transformation derivatives
     %     Jacobian
@@ -73,9 +66,6 @@ function [defMesh] = DeformMesh(mesh,X2,Y2)
     Ji(2,1,:)  = -J(2,1,:)./det;
     Ji(1,2,:)  = -J(1,2,:)./det;
     Ji(2,2,:)  =  J(1,1,:)./det;
-        
-
-    
 
     %% Compute new derivative matrices
     %% First Derivatives
@@ -115,83 +105,76 @@ function [defMesh] = DeformMesh(mesh,X2,Y2)
 
     % Q_ijk = Ji_jl * d(Ji_ik)/dsigl
     Q = zeros(2,2,2,ngp);
-    for i=1:2
-        for j=1:2
-            for k=1:2
+    for i=1:2; for j=1:2; for k=1:2
                 Q(i,j,k,:) = Ji(j,1,:).*dJi(i,k,:,1) + Ji(j,2,:).*dJi(i,k,:,2);
-            end
-        end    
-    end
+    end; end; end
 
     Dxy = Dx*Dy;
     Dyx = Dy*Dx;
 
     diags = @(x)spdiags(x,0,ngp,ngp);
 
-     D2x_new =  diags(axx(:,1))*D2x + diags(axy(:,1))*Dxy + ...
-                diags(ayx(:,1))*Dyx + diags(ayy(:,1))*D2y + ...
-                diags(squeeze(Q(1,1,1,:)))*Dx + diags(squeeze(Q(1,1,2,:)))*Dy ;
-     Dxy_new =  diags(axx(:,2))*D2x + diags(axy(:,2))*Dxy + ...
-                diags(ayx(:,2))*Dyx + diags(ayy(:,2))*D2y + ...
-                diags(squeeze(Q(1,2,1,:)))*Dx + diags(squeeze(Q(1,2,2,:)))*Dy ;
-     Dyx_new =  diags(axx(:,3))*D2x + diags(axy(:,3))*Dxy + ...
-                diags(ayx(:,3))*Dyx + diags(ayy(:,3))*D2y + ...
-                diags(squeeze(Q(2,1,1,:)))*Dx + diags(squeeze(Q(2,1,2,:)))*Dy ;
-     D2y_new =  diags(axx(:,4))*D2x + diags(axy(:,4))*Dxy + ...
-                diags(ayx(:,4))*Dyx + diags(ayy(:,4))*D2y + ...
-                diags(squeeze(Q(2,2,1,:)))*Dx + diags(squeeze(Q(2,2,2,:)))*Dy ;
-     
-     Dxy_symm_new =  diags(axx(:,2))*D2x            + diags(axy(:,2))*Dxy_symm + ...
-                     diags(ayx(:,2))*Dyx_symm       + diags(ayy(:,2))*D2y_symm + ...
-                     diags(squeeze(Q(1,2,1,:)))*Dx  + diags(squeeze(Q(1,2,2,:)))*Dy_symm ;
-     Dyx_symm_new =  diags(axx(:,3))*D2x            + diags(axy(:,3))*Dxy_symm + ...
-                     diags(ayx(:,3))*Dyx_symm       + diags(ayy(:,3))*D2y_symm + ...
-                     diags(squeeze(Q(2,1,1,:)))*Dx  + diags(squeeze(Q(2,1,2,:)))*Dy_symm ;
-     D2y_symm_new =  diags(axx(:,4))*D2x            + diags(axy(:,4))*Dxy_symm + ...
-                     diags(ayx(:,4))*Dyx_symm       + diags(ayy(:,4))*D2y_symm + ...
-                     diags(squeeze(Q(2,2,1,:)))*Dx  + diags(squeeze(Q(2,2,2,:)))*Dy_symm ;
-     
-     Dxy_asymm_new=  diags(axx(:,2))*D2x            + diags(axy(:,2))*Dxy_asymm + ...
-                     diags(ayx(:,2))*Dyx_asymm       + diags(ayy(:,2))*D2y_asymm + ...
-                     diags(squeeze(Q(1,2,1,:)))*Dx  + diags(squeeze(Q(1,2,2,:)))*Dy_asymm ;
-     Dyx_asymm_new=  diags(axx(:,3))*D2x            + diags(axy(:,3))*Dxy_asymm + ...
-                     diags(ayx(:,3))*Dyx_asymm       + diags(ayy(:,3))*D2y_asymm + ...
-                     diags(squeeze(Q(2,1,1,:)))*Dx  + diags(squeeze(Q(2,1,2,:)))*Dy_asymm ;
-     D2y_asymm_new=  diags(axx(:,4))*D2x            + diags(axy(:,4))*Dxy_asymm + ...
-                     diags(ayx(:,4))*Dyx_asymm       + diags(ayy(:,4))*D2y_asymm + ...
-                     diags(squeeze(Q(2,2,1,:)))*Dx  + diags(squeeze(Q(2,2,2,:)))*Dy_asymm ;
+    D2x_new =  diags(axx(:,1))*D2x + diags(axy(:,1))*Dxy + ...
+            diags(ayx(:,1))*Dyx + diags(ayy(:,1))*D2y + ...
+            diags(squeeze(Q(1,1,1,:)))*Dx + diags(squeeze(Q(1,1,2,:)))*Dy ;
+    Dxy_new =  diags(axx(:,2))*D2x + diags(axy(:,2))*Dxy + ...
+            diags(ayx(:,2))*Dyx + diags(ayy(:,2))*D2y + ...
+            diags(squeeze(Q(1,2,1,:)))*Dx + diags(squeeze(Q(1,2,2,:)))*Dy ;
+    Dyx_new =  diags(axx(:,3))*D2x + diags(axy(:,3))*Dxy + ...
+            diags(ayx(:,3))*Dyx + diags(ayy(:,3))*D2y + ...
+            diags(squeeze(Q(2,1,1,:)))*Dx + diags(squeeze(Q(2,1,2,:)))*Dy ;
+    D2y_new =  diags(axx(:,4))*D2x + diags(axy(:,4))*Dxy + ...
+            diags(ayx(:,4))*Dyx + diags(ayy(:,4))*D2y + ...
+            diags(squeeze(Q(2,2,1,:)))*Dx + diags(squeeze(Q(2,2,2,:)))*Dy ;
+
+    Dxy_symm_new =  diags(axx(:,2))*D2x            + diags(axy(:,2))*Dxy_symm + ...
+                 diags(ayx(:,2))*Dyx_symm       + diags(ayy(:,2))*D2y_symm + ...
+                 diags(squeeze(Q(1,2,1,:)))*Dx  + diags(squeeze(Q(1,2,2,:)))*Dy_symm ;
+    Dyx_symm_new =  diags(axx(:,3))*D2x            + diags(axy(:,3))*Dxy_symm + ...
+                 diags(ayx(:,3))*Dyx_symm       + diags(ayy(:,3))*D2y_symm + ...
+                 diags(squeeze(Q(2,1,1,:)))*Dx  + diags(squeeze(Q(2,1,2,:)))*Dy_symm ;
+    D2y_symm_new =  diags(axx(:,4))*D2x            + diags(axy(:,4))*Dxy_symm + ...
+                 diags(ayx(:,4))*Dyx_symm       + diags(ayy(:,4))*D2y_symm + ...
+                 diags(squeeze(Q(2,2,1,:)))*Dx  + diags(squeeze(Q(2,2,2,:)))*Dy_symm ;
+
+    Dxy_asymm_new=  diags(axx(:,2))*D2x            + diags(axy(:,2))*Dxy_asymm + ...
+                 diags(ayx(:,2))*Dyx_asymm       + diags(ayy(:,2))*D2y_asymm + ...
+                 diags(squeeze(Q(1,2,1,:)))*Dx  + diags(squeeze(Q(1,2,2,:)))*Dy_asymm ;
+    Dyx_asymm_new=  diags(axx(:,3))*D2x            + diags(axy(:,3))*Dxy_asymm + ...
+                 diags(ayx(:,3))*Dyx_asymm       + diags(ayy(:,3))*D2y_asymm + ...
+                 diags(squeeze(Q(2,1,1,:)))*Dx  + diags(squeeze(Q(2,1,2,:)))*Dy_asymm ;
+    D2y_asymm_new=  diags(axx(:,4))*D2x            + diags(axy(:,4))*Dxy_asymm + ...
+                 diags(ayx(:,4))*Dyx_asymm       + diags(ayy(:,4))*D2y_asymm + ...
+                 diags(squeeze(Q(2,2,1,:)))*Dx  + diags(squeeze(Q(2,2,2,:)))*Dy_asymm ;
                   
             
     % update intregration weights
-    Wnew        = zeros(size(mesh.DW.W));
-    Wnew_symm   = zeros(size(mesh.DW.W));
-    Wnew_asymm  = zeros(size(mesh.DW.W));
-    Wnew(mesh.usedInd)       = mesh.DW.W(mesh.usedInd).*abs(det(:));
-    Wnew_symm(mesh.usedInd)  = mesh.DW.W_symm(mesh.usedInd).*abs(det(:));
-    Wnew_asymm(mesh.usedInd) = mesh.DW.W_asymm(mesh.usedInd).*abs(det(:));
+    Wnew        = zeros(size(mesh.W));
+    Wnew_symm   = zeros(size(mesh.W));
+    Wnew_asymm  = zeros(size(mesh.W));
+    Wnew(mesh.usedInd)       = mesh.W(mesh.usedInd).*abs(det(:));
+    Wnew_symm(mesh.usedInd)  = mesh.W_symm(mesh.usedInd).*abs(det(:));
+    Wnew_asymm(mesh.usedInd) = mesh.W_asymm(mesh.usedInd).*abs(det(:));
 
             
-    defDW.Dx        = Dx_new ;
-    defDW.Dy        = Dy_new ;
-    defDW.Dy_symm   = Dy_symm_new ;
-    defDW.Dy_asymm  = Dy_asymm_new ;
+    defMesh.Dx        = Dx_new ;
+    defMesh.Dy        = Dy_new ;
+    defMesh.Dy_symm   = Dy_symm_new ;
+    defMesh.Dy_asymm  = Dy_asymm_new ;
 
-    defDW.D2x       = D2x_new ;
-    defDW.Dxy       = Dxy_new ;
-    defDW.Dyx       = Dyx_new ;
-    defDW.D2y       = D2y_new ;
+    defMesh.D2x       = D2x_new ;
+    defMesh.Dxy       = Dxy_new ;
+    defMesh.Dyx       = Dyx_new ;
+    defMesh.D2y       = D2y_new ;
     
-    defDW.Dxy_symm  = Dxy_symm_new ;
-    defDW.Dyx_symm  = Dyx_symm_new ;
-    defDW.D2y_symm  = D2y_symm_new ;
+    defMesh.Dxy_symm  = Dxy_symm_new ;
+    defMesh.Dyx_symm  = Dyx_symm_new ;
+    defMesh.D2y_symm  = D2y_symm_new ;
 
-    defDW.Dxy_asymm = Dxy_asymm_new ;
-    defDW.Dyx_asymm = Dyx_asymm_new ;
-    defDW.D2y_asymm = D2y_asymm_new ;
+    defMesh.Dxy_asymm = Dxy_asymm_new ;
+    defMesh.Dyx_asymm = Dyx_asymm_new ;
+    defMesh.D2y_asymm = D2y_asymm_new ;
 
-    defDW.W         = Wnew;
-    defDW.W_symm    = Wnew_symm;
-    defDW.W_asymm   = Wnew_asymm;
-    
-    defMesh.DW              = defDW;
-
+    defMesh.W         = Wnew;
+    defMesh.W_symm    = Wnew_symm;
+    defMesh.W_asymm   = Wnew_asymm;

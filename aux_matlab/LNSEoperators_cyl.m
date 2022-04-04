@@ -1,58 +1,54 @@
-function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
-    % [LHS,RHS] = GetLHSRHS(mesh,BF,m,Re,sponge)
+function [L0,indexes] = LNSEoperators_cyl(mesh,baseFlow,m)
+    % [LHS,RHS] = LNSEoperators_cyl(mesh,BF,m,Re,sponge)
     % Creates LHS and RHS operators of the LNS equations, such that
     % LHS dq/dt = RHS q , q=[rho,u,v,w,T].
     % Inputs ; 
-    %       mesh    : mesh object containing the spatial coordiantes,
-    %           diferentiation matrices and integration weights.
-    %       BF      : object containing the baseflow to be used, including a
-    %           sponge function
-    %       model   : selects cartesian ('2D') or axysimmetric model ('axi')
-    %       mkx     : provides the wavenumber in x (kx, if model='2D', ir
-    %           the azymuthal number (m), if model= 'axy'
+    %     mesh : mesh object containing the spatial coordiantes,
+    %     diferentiation matrices and integration weights.
+    %     BF   : object containing the baseflow to be used
+    %     sponge : sponge function to be used.
     % Outputs :
-    %       L0      : matrix representing the linear system dqdt = L0 q 
-    %       idx     : matrix representing the linear system dqdt = L0 q 
+    %     LHS and RHS matrices.
+    
+    Re      = baseFlow.Re;
+    sponge  = mesh.sponge;
     
     tic
     % Get mesh and scalar diff. matrices.
-    z = mesh.X(mesh.usedInd);
+    z = mesh.X;
     Dz = mesh.Dx;
     D2z = mesh.D2x;
     
-    r = mesh.Y(mesh.usedInd);
+    r = mesh.Y;
     Dr = mesh.Dy;
     D2r = mesh.D2y;
-
-    Drz = mesh.Dxy;
-    Dzr = mesh.Dyx;
-
-        
-    nGridPoints = mesh.ngp;
+    
+    [Nr,Nz] = size(mesh.X);
+    
+    NrNz = Nr*Nz;
     
     % Get meanflow in vector form
-    U   = BF.U(mesh.usedInd);
-    V   = BF.V(mesh.usedInd);
-    W   = BF.W(mesh.usedInd);
-    RHO = BF.RHO(mesh.usedInd);
-    T   = BF.T(mesh.usedInd);
-    MU  = BF.MU(mesh.usedInd);
-    P   = RHO.*T./(BF.Ma^2*BF.kappa);
-    dmudT    = BF.dmudT(mesh.usedInd);
-    d2mudT2  = BF.d2mudT2(mesh.usedInd);
-    dMUdT    = BF.dMUdT(mesh.usedInd);
-    d2MUdT2  = BF.d2MUdT2(mesh.usedInd);
+    U   = baseFlow.U(:);
+    V   = baseFlow.V(:);
+    W   = baseFlow.W(:);
+    RHO = baseFlow.RHO(:);
+    T   = baseFlow.T(:);
+    MU  = baseFlow.MU(:);
+    dmudT    = baseFlow.dmudT(:);
+    d2mudT2  = baseFlow.d2mudT2(:);
 
-    cv   = BF.cv;
-    c1   = BF.c1;
-    c2   = BF.c2;
-    kappa= BF.kappa;
+    cv   = baseFlow.cv;
+    c1   = baseFlow.c1;
+    c2   = baseFlow.c2;
+    kappa= baseFlow.kappa;
 
-    %aux matrices
-    Z = zeros(nGridPoints, 1);
-    I = ones(nGridPoints, 1);
-    R = reshape(r, nGridPoints, 1);
+    %aux ùatrices
+    Z = zeros(NrNz, 1);
+    I = ones(NrNz, 1);
+    R = reshape(r, NrNz, 1);
 
+    %Sponge matrix
+    Asponge = spdiags( [sponge(:);sponge(:);sponge(:);sponge(:);sponge(:)],0,NrNz*5,NrNz*5);
         
     %% COMPUTE BASEFLOW DERIVATIVES
     tic
@@ -70,32 +66,14 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     d2Udrz  = Dz*dUdr;
     d2Vdrz  = Dz*dVdr;
     d2Wdrz  = Dz*dWdr; 
-    dPdr    = Dr*P;
-    dPdz    = Dz*P;
-    
     
     %% Coefficient matrices
     %get global diff. matrices
+    [DR,D2R,DZ,D2Z,D2RZ,D2ZR] =   CreateDiffMatrices_Axy(mesh,m);
 %     D2ZR=DR*DZ;
     
     %get coefficients
-    if strcmp(model,'2D')
-        Ma  = BF.Ma;
-        Pr  = BF.Pr;
-        kz  = mkz;
-        NrNz=nGridPoints;
-        DR  =blkdiag(Dr ,Dr ,Dr ,Dr ,Dr );
-        D2R =blkdiag(D2r,D2r,D2r,D2r,D2r);
-        DZ  =blkdiag(Dz ,Dz ,Dz ,Dz ,Dz );
-        D2Z =blkdiag(D2z,D2z,D2z,D2z,D2z);
-        D2RZ=blkdiag(Dzr,Dzr,Dzr,Dzr,Dzr);
-        getCoeffsLaminar_Cartesian
-    else
-        m=mkx;
-        Re = BF.Re;
-        [DR,D2R,DZ,D2Z,D2RZ,D2ZR] =   CreateDiffMatrices_Axy(mesh,m);
-        getCoeffsLaminar
-    end
+    getCoeffsLaminar
 
     %build matrices from coefficients
     A0 =    ...
@@ -152,7 +130,7 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
         diag(sparse(Azz_51)) diag(sparse(Azz_52)) diag(sparse(Azz_53)) diag(sparse(Azz_54)) diag(sparse(Azz_55))
         ];
 
-    ZZ = 0*speye(nGridPoints,nGridPoints); % need a zero diagonal sparse matrix... is there a better way?
+    ZZ = 0*speye(NrNz,NrNz); % need a zero diagonal sparse matrix... is there a better way?
 
     RHS =     ...
         [   ...
@@ -164,44 +142,39 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
         ];
 
     %% Construct the operator
-    LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*D2RZ;
+%     LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*DR*DZ - Asponge;
+    LHS     = A0 + Ar*DR + Az*DZ + Arr*D2R + Azz*D2Z + Arz*D2RZ - Asponge;
     
     %% Construct the varibles and boundary indexes.
     % Row indices for primitive variables 
-    idx = struct();
+    indexes = struct();
     ngp        = mesh.ngp;
 
-    idx.li = mesh.idx.li;
-    idx.ri = mesh.idx.ri;
-    idx.bi = mesh.idx.bi;
-    idx.ti = mesh.idx.ti;
+    indexes.li = mesh.idx.li;
+    indexes.ri = mesh.idx.ri;
+    indexes.bi = mesh.idx.bi;
+    indexes.ti = mesh.idx.ti;
 
     boundaries = fields(mesh.idx);
     variables  = {'rho','u','v','w','T'}; 
     
     for ib = 1:length(boundaries)
         b  = boundaries{ib};
-        idx.([b '_all']) = [];
+        indexes.([b '_all']) = [];
         for iv = 1:length(variables)
             v = variables{iv};
-            idx.([b '_' v]) =  idx.(b) + ngp*(iv-1);
-            idx.([b '_all'])=  [idx.([b '_all']); idx.([b '_' v])] ;
+            indexes.([b '_' v]) =  indexes.(b) + ngp*(iv-1);
+            indexes.([b '_all'])=  [indexes.([b '_all']); indexes.([b '_' v])] ;
         end
     end
    
     % Column indices for conserved variables
     for iv = 1:length(variables)
         v = variables{iv};
-        idx.([v '_j']) =  (1:ngp) + ngp*(iv-1);
+        indexes.([v '_j']) =  (1:ngp) + ngp*(iv-1);
     end
     
+    L0 = -(RHS/1i)\LHS  ;
     
-    L0 = -(RHS/1i)\LHS ;
-    
-    %% Add sponge function to the linear operator
-    sponge  = mesh.sponge;
-    Asponge = spdiags( repmat(sponge(:),5,1),0,ngp*5,ngp*5);
-    L0 = L0 + Asponge ; 
- 
     time    = toc;
     disp(['    elapsed time - Coefficient matrices: ' datestr(time/24/3600, 'HH:MM:SS')]);
