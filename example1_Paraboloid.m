@@ -127,10 +127,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Set up linear operator incl. boundary conditions                       %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% iR dqdt = L  q
 %    dqdt = L0 q
 %%
-% [L0,idx] 	= LNSEoperators_cyl(mesh,baseFlow,m);
 [L0,idx] 	= GetLinProblem(mesh,baseFlow,'axy',m);
 
 % Enforce Dirichlet b,c on the top, right and left boundaries, for u,v,w
