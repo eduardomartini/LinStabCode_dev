@@ -31,24 +31,24 @@ verbose     = true;         % visualize grid, base flow and results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Cartesian mesh in computational domain
-usesymmetry= true;      % use symmetry on y coordinate around y=0 (for axysymmetric problems)
-periodic    = false;    % use periodic b.c. on x
-alpha       = .0;       % spatial filter coefficient
-xrange      = [-1 0 ];  % domain range in x
-yrange      = [ 0 1 ];  % domain range in y
+y_symmetry      = true;     % use symmetry on y coordinate around y=0 (for axysymmetric problems)
+x_periodicity   = false;    % use periodic b.c. on x
+alpha           = .0;       % spatial filter coefficient
+xrange          = [-1 0 ];  % domain range in x
+yrange          = [ 0 1 ];  % domain range in y
 
-cmesh       = CreateMesh(xrange,yrange,Nz,Nr,FDorder, ...     
-                         usesymmetry,periodic,alpha); %construct mesh
+cmesh           = CreateMesh(xrange,yrange,Nz,Nr,FDorder, ...     
+                             y_symmetry,x_periodicity,alpha); %construct mesh
                      
-x           = cmesh.X;           % x,y: Cartesian grid coordinates
-y           = cmesh.Y;
+x   = cmesh.X;           % x,y: Cartesian grid coordinates
+y   = cmesh.Y;
 
 % Grid transformation to parabolic sement in physical domain
-d       = 0.2;              % wall-normal thickness parameter
-x       = x*d-0.5;
-z       = (x+1i*y);
-X       = -real(z.^2);      % X,Y: Parabolic grid coordinates
-Y       = -imag(z.^2);
+d   = 0.2;              % wall-normal thickness parameter
+x   = x*d-0.5;
+z   = (x+1i*y);
+X   = -real(z.^2);      % X,Y: Parabolic grid coordinates
+Y   = -imag(z.^2);
 
 %
 mesh    = DeformMesh(cmesh,X,Y);

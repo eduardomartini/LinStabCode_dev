@@ -4,17 +4,26 @@ close all
 clc
 addpath('aux_matlab');
 
-% Domain & grid
-Nr          = 50;           % # of grid points (radial)
-Nz          = 50;           % # of grid points (streamwise)
-FDorder     = 4;            % finite difference order of accuracy
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create mesh and obtain differentiation matrices                        %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Domain & grid
+% Cartesian mesh in computational domain
+y_symmetry      = true;     % use symmetry on y coordinate around y=0 (for axysymmetric problems)
+x_periodicity   = false;    % use periodic b.c. on x
+alpha           = .0;       % spatial filter coefficient
+xrange          = [-1 0 ];  % domain range in x
+yrange          = [ 0 1 ];  % domain range in y
+
+Nr          = 50;           % # of grid points (radial)
+Nz          = 50;           % # of grid points (streamwise)
+FDorder     = 4;            % finite difference order of accuracy
 
 % Cartesian mesh in computational domain
-cmesh   = CreateMesh([-1 0],[0 0.99],Nz,Nr,FDorder,true);
+
+cmesh           = CreateMesh(xrange,yrange,Nz,Nr,FDorder, ...     
+                             y_symmetry,x_periodicity,alpha); %construct mesh
 x       = cmesh.X;           % x,y: Cartesian grid coordinates
 y       = cmesh.Y;
 
@@ -41,8 +50,8 @@ df    = x*0;
 df(:) = D*f(:);
 
 figure('name','Derivatives test')
-    vars = {f        ,'$f$';
-            df_an    ,'$df_{analytical}$'   ;
-            df       ,'$df_{numerical}$'   ;
-            df-df_an ,'$df_{error}$'   }
+    vars = {f        ,'$f$'                 ;
+            df_an    ,'$df_{analytical}$'   ; 
+            df       ,'$df_{numerical}$'    ;
+            df-df_an ,'$df_{error}$'            }    ; 
     plotFlow(mesh.X,mesh.Y,vars,2,2)
