@@ -20,7 +20,7 @@ for b=borders
     for v=variables 
         if v=='r';  v='rho'; end  % if density, expand the string
         index_str = [b,'i_' v];
-        index_set = [index_set,idx.(index_str)];
+        index_set = [index_set;idx.(index_str)(:)];
     end
 end
 
