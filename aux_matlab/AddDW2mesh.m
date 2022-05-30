@@ -9,11 +9,10 @@ function  mesh = AddDW2mesh(mesh)
         end
     end
 
-    periodic=false;
     if isfield(mesh,'periodic')
-        if mesh.periodic
-            periodic=true
-        end
+        periodic=mesh.periodic;
+    else
+        periodic=false;        
     end
     if periodic
             %extend the domain FDorder points on both sides, keeping mask and
@@ -41,7 +40,7 @@ function  mesh = AddDW2mesh(mesh)
     Dy_asymm = sparse(N,N);
     D2y_asymm= sparse(N,N);
     
-    W       = zeros (NY,NX); 
+    W       = nan (NY,NX); 
     W      (mesh.usedInd)=1;
     
     if mesh.y_symmetry

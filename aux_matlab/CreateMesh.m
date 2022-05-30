@@ -60,7 +60,9 @@ function mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,y_symmetry,x_periodicity,
     %create low-pass filter
     if ~exist('alpha_filter')
         %no filtering
-        mesh.alpga_filter='none'
+        mesh.alpha_filter='none'
+    else
+        mesh.alpha_filter=alpha_filter;        
     end
     mesh.alpga_filter=alpha_filter;
     [filter,filter_ct]  = GetFilter(mesh,alpha_filter);

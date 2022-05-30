@@ -15,18 +15,20 @@ nDOF    = size(L0,1);
 
 disp(['    computing resolvent analysis for omega=' num2str(omega)]);
 
-if size(W,1)==1 || size(W,2)==1
+if (size(W,1)==1 && size(W,2)==1)
+    disp('Using a scalar metric.')
+elseif (size(W,1)==1 || size(W,2)==1)
     invW    = 1./W;
     W       = diag(sparse(  W ));
     invW    = diag(sparse(invW));
-else
-    if ~exist('invW') || prod(size(W) == size(invW))==0
-        error('W is a matrix and its inverse was not provided or does not has the same size as W.');
-    end
+elseif ~exist('invW') || prod(size(W) == size(invW))==0
+    error('W is a matrix and its inverse was not provided or does not has the same size as W.');
+    
 end
 
 % LU-decomposition of L0-sigma*I
 tic
+fprintf('  Starting LU-decomposition of L-sigma*I: ');
 LsI                 = L0-1i*omega*speye(nDOF);
 [LL,UU,pp,qq,rr]    = lu(LsI);
 time = toc;
@@ -56,11 +58,14 @@ opts.isreal = false;
 
 % Input via eigendecomposition of H*H
 tic
+
+fprintf('  Starting SVD via ''eigs'' accelerated with LU decomposition : ');
+
 [V, OMEGA] 	= eigs(HtrH, nDOF, nEig, 'lm', opts);
 S           = sqrt(diag(real(OMEGA))); % singular values of H given by sqrt. of eigenvalues of H*H, should be real (imag. part is O(eps))
 
 time = toc;
-disp(['    elapsed time - SVD via ''eigs'' using matrix-free Arnoldi: ' datestr(time/24/3600, 'HH:MM:SS')]);
+disp(['    elapsed time : ' datestr(time/24/3600, 'HH:MM:SS')]);
 
 % Normalization and outputs
 U = zeros(size(V));

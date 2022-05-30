@@ -1,4 +1,4 @@
-function plotFlow(X,Y,vars,nr,nc)
+function plotFlow(X,Y,vars,nr,nc,usedInd)
     % plotFlow(X,Y,vars,nr,nc)
     %creates a subplot structure to make contour plots of flow quantities.
     % Inputs 
@@ -13,18 +13,20 @@ function plotFlow(X,Y,vars,nr,nc)
 
 nVars   = size(vars,1);
 
-if nargin==3
-    nr      = ceil(sqrt(nVars));
-    nc      = nr;
+
+if exist('nr');  if isempty(nr); nr = ceil(sqrt(nVars)); end; end
+if exist('nc');  if isempty(nc); nc = nr               ; end; end
+
+if ~exist('usedInd')
+    usedInd = 1:numel(X);
 end
 
 for i=1:nVars
     subplot(nr,nc,i)
-    if size(vars{i,1})~=size(X)
-        var     = reshape(vars{i,1},size(X));
-    else
-        var     = vars{i,1};
-    end
+    var = nan(size(X));
+    
+    var(usedInd) = vars{i,1};
+    
     pcolor(X,Y,var); shading interp
     colorbar;
     axis equal tight

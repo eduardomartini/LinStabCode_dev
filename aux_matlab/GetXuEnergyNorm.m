@@ -9,10 +9,12 @@ function [Wen,invWen] = GetXuEnergyNorm(mesh,BF,model)
     %   Wen,invEn  : Xu energy norm matrix, already containing the integration
     %               weights, and its inverse.
 
-if model == 'axy'
+if strcmp(model,'axy')
     intWeight = mesh.W .*mesh.Y; %int () r dr dz
-elseif  model == '2D'
+elseif  strcmp(model,'2D')
     intWeight = mesh.W ; %int () dy dz
+else
+    error('Invalid model type. "axy" and "2D" available.');
 end    
 
 p=mesh.usedInd;

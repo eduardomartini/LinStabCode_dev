@@ -38,10 +38,18 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     T   = BF.T(mesh.usedInd);
     MU  = BF.MU(mesh.usedInd);
     P   = RHO.*T./(BF.Ma^2*BF.kappa);
-    dmudT    = BF.dmudT(mesh.usedInd);
-    d2mudT2  = BF.d2mudT2(mesh.usedInd);
-    dMUdT    = BF.dMUdT(mesh.usedInd);
-    d2MUdT2  = BF.d2MUdT2(mesh.usedInd);
+    
+    if isfield(BF,'dmudT')  ; dmudT     = BF.dmudT(mesh.usedInd);
+    else                    ; dmudT     = zeros(size(MU)); end
+
+    if isfield(BF,'d2mudT2'); d2mudT2   = BF.d2mudT2(mesh.usedInd);
+    else                    ; d2mudT2   = zeros(size(MU)); end
+
+    if isfield(BF,'dMUdT')  ; dMUdT     = BF.dMUdT(mesh.usedInd);
+    else                    ; dMUdT     = zeros(size(MU)); end
+
+    if isfield(BF,'d2MUdT2'); d2MUdT2   = BF.d2MUdT2(mesh.usedInd);
+    else                    ; d2MUdT2   = zeros(size(MU)); end
 
     cv   = BF.cv;
     c1   = BF.c1;
@@ -82,7 +90,8 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     if strcmp(model,'2D')
         Ma  = BF.Ma;
         Pr  = BF.Pr;
-        kz  = mkz;
+        kz  = mkx;
+        Re = BF.Re;
         NrNz=nGridPoints;
         DR  =blkdiag(Dr ,Dr ,Dr ,Dr ,Dr );
         D2R =blkdiag(D2r,D2r,D2r,D2r,D2r);
@@ -171,10 +180,7 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     idx = struct();
     ngp        = mesh.ngp;
 
-    idx.li = mesh.idx.li;
-    idx.ri = mesh.idx.ri;
-    idx.bi = mesh.idx.bi;
-    idx.ti = mesh.idx.ti;
+    idx = mesh.idx;
 
     boundaries = fields(mesh.idx);
     variables  = {'rho','u','v','w','T'}; 
@@ -199,7 +205,7 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     L0 = -(RHS/1i)\LHS ;
     
     %% Add sponge function to the linear operator
-    sponge  = mesh.sponge;
+    sponge  = mesh.sponge(mesh.usedInd);
     Asponge = spdiags( repmat(sponge(:),5,1),0,ngp*5,ngp*5);
     L0 = L0 + Asponge ; 
  

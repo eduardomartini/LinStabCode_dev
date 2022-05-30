@@ -92,7 +92,7 @@ end
 % Import base flow
 
 disp('Setting baseflow...');
-baseFlow    = ReadBaseFlow(mesh,baseFlow); % Custumize the function to read your baseflow
+baseFlow    = example_1_readbaseflow(mesh,baseFlow); % Custumize the function to read your baseflow
 
 % Viscosity (via Sutherland) and heat conductivity (via constant Prandtl number)
 [baseFlow]  = sutherland_air(baseFlow);
