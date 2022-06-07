@@ -202,12 +202,12 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     end
     
     
-    L0 = -(RHS/1i)\LHS ;
+    L0 = (RHS/1i)\LHS ;
     
     %% Add sponge function to the linear operator
     sponge  = mesh.sponge(mesh.usedInd);
     Asponge = spdiags( repmat(sponge(:),5,1),0,ngp*5,ngp*5);
-    L0 = L0 + Asponge ; 
+    L0 = L0 - Asponge ; 
  
     time    = toc;
     disp(['    elapsed time - Coefficient matrices: ' datestr(time/24/3600, 'HH:MM:SS')]);

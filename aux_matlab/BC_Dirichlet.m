@@ -27,6 +27,7 @@ end
 index_set= unique(index_set(:));
     
 L0(index_set, :) = 0;
+L0(:, index_set) = 0;
 L0(index_set, index_set)   = eye(length(index_set));
 
 time    = toc;
