@@ -175,14 +175,20 @@ tic
 time_iLU = toc;
 
 tic
-nIter = 10;
+nIter = 5;
 tol=1e-3;
 deltaF = 1;
 nfreqs =1 ;
-[Stm,~,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W,invW,B,C);
+mRSVD=3;
+[Stm,~,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W,invW,B,C,mRSVD);
 time_tm = toc;
 
-
+figure('name','Gains convergence')
+    plot(1:nIter, SS_conv.',1:nIter,repmat(S,1,nIter),'k:') 
+    xlabel('iterations');
+    ylabel('gain');
+    title('Gain convergence')
+    
 %% Plot modes and gains
 if verbose
     figure('name','Mode gains')

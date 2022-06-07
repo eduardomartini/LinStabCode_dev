@@ -1,7 +1,8 @@
-function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C)
+function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C,mRSVD)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
-    m         = 1               ;
+    if ~exist('mRSVD','var')     ; mRSVD=1; end
+    
     dt        = TM_setup.dt     ;
     nq        = TM_setup.n      ; 
     nq_multi  = TM_setup.n_multi;
@@ -27,13 +28,13 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     end
     
     % Alocate input and output vectors
-    f_in          = zeros(nq,m,nf,n_Iter);
-    f_out         = zeros(nq,m,nf,n_Iter);
+    f_in          = zeros(nq,mRSVD,nf,n_Iter);
+    f_out         = zeros(nq,mRSVD,nf,n_Iter);
 
-        
+    
     
     % Create initial random seeds
-    f_prev(:,:,:) = randn(nq,m,nf)+randn(nq,m,nf)*1i;
+    f_prev(:,:,:) = randn(nq,mRSVD,nf)+randn(nq,mRSVD,nf)*1i;
     % Make seeds at each frequency ortogonal
     for i_f = 1:nf
         [f_prev(:,:,i_f),~] = qr(f_prev(:,:,i_f),0);
@@ -45,7 +46,7 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
         f_in(:,:,:,i_iter) =  f_prev ; 
 
         %define forcing term for the direct problem
-        for i_m=1:m                
+        parfor i_m=1:mRSVD                
             %%
             f = @(t) B*squeeze(f_prev(:,i_m,:))*exp(-2i*pi*fList.'*t);
             q0   = zeros(nq*nq_multi,1);
@@ -100,8 +101,8 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
         end
         %% Make next inputs ortogonal to all previous ones
         for i_f = 1:nf
-            f  = reshape( f_out(:,:,i_f,i_iter  ),nq,m       ) ;  % current outputs
-            F  = reshape( f_in (:,:,i_f,1:i_iter),nq,m*i_iter) ;    %previous input
+            f  = reshape( f_out(:,:,i_f,i_iter  ),nq,mRSVD       ) ;  % current outputs
+            F  = reshape( f_in (:,:,i_f,1:i_iter),nq,mRSVD*i_iter) ;    %previous input
             f = f - F*(F'*f);  % keep only f that is orthogonal to F 
             [f,~]= qr(f,0);
             f_prev(:,:,i_f) = f;
@@ -109,12 +110,12 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     end
     
     %% Compute gains based on the Arnold decomposition constructed
-    S       = zeros(n_Iter,nf)      ; %gains 
-    SS_conv = nan(n_Iter,n_Iter,nf) ; %gains convergence history
+    S       = zeros(n_Iter*mRSVD,nf)      ; %gains 
+    SS_conv = nan(n_Iter*mRSVD,n_Iter,nf) ; %gains convergence history
 
     for i_f = 1:nf
-        F_in   = reshape( f_in  (:,:,i_f,:),nq,m*n_Iter) ;    % Inputs
-        F_out  = reshape( f_out (:,:,i_f,:),nq,m*n_Iter) ;    % Output
+        F_in   = reshape( f_in  (:,:,i_f,:),nq,mRSVD*n_Iter) ;    % Inputs
+        F_out  = reshape( f_out (:,:,i_f,:),nq,mRSVD*n_Iter) ;    % Output
         H = F_in'*F_out;
         
         [psi,SS]        = eig(H);
@@ -123,7 +124,7 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
         V(:,:,i_f)      = F_in*psi(:,order); 
         
         for j=1:n_Iter
-            SS_conv(1:j,j,i_f) = sort(sqrt( eig(H(1:j,1:j))) ,'descend');
+            SS_conv(1:j*mRSVD,j,i_f) = sort(sqrt( eig(H(1:j*mRSVD,1:j*mRSVD))) ,'descend');
         end
     end
     
