@@ -9,8 +9,8 @@ function  mesh = AddDW2mesh(mesh)
         end
     end
 
-    if isfield(mesh,'periodic')
-        periodic=mesh.periodic;
+    if isfield(mesh,'x_periodicity')
+        periodic=mesh.x_periodicity;
     else
         periodic=false;        
     end
@@ -31,19 +31,19 @@ function  mesh = AddDW2mesh(mesh)
     N=mesh.ngp;
     [NY,NX] = size(mesh.X);
 
-    Dx       = sparse(N,N);
-    D2x      = sparse(N,N);
-    Dy       = sparse(N,N);
-    D2y      = sparse(N,N);
-    Dy_symm  = sparse(N,N);
-    D2y_symm = sparse(N,N);
-    Dy_asymm = sparse(N,N);
-    D2y_asymm= sparse(N,N);
-    
-    W       = nan (NY,NX); 
-    W      (mesh.usedInd)=1;
+    Dx              = sparse(N,N);
+    D2x             = sparse(N,N);
+    Dy              = sparse(N,N);
+    D2y             = sparse(N,N);
+    W               = nan (NY,NX); 
+    W(mesh.usedInd) = 1;
     
     if mesh.y_symmetry
+        Dy_symm  = sparse(N,N);
+        D2y_symm = sparse(N,N);
+        Dy_asymm = sparse(N,N);
+        D2y_asymm= sparse(N,N);
+
         W_symm  = zeros (NY,NX); 
         W_asymm = zeros (NY,NX); 
         W_symm (mesh.usedInd)=1;
@@ -187,30 +187,36 @@ function  mesh = AddDW2mesh(mesh)
 
         end 
         BB = sparse(kron(B,speye((Ny))));
-%         Dx  = Dx(dom,:)*BB';
-%         D2x = D2x(dom,:)*BB';
-        Dx  = Dx(dom,dom);
-        D2x = D2x(dom,dom);
-
-        
-        
+        Dx  = Dx (dom,:)*BB';
+        D2x = D2x(dom,:)*BB';
+%         Dx  = Dx(dom,dom);
+%         D2x = D2x(dom,dom);
         Dy          = Dy (dom,dom);
         D2y         = D2y(dom,dom);
-        Dy_symm     = Dy_symm(dom,dom);
-        D2y_symm    = D2y_symm(dom,dom);
-        Dy_asymm    = Dy_asymm(dom,dom);
-        D2y_asymm   = D2y_asymm(dom,dom);
         
         W           = W(dom);
-        W_symm      = W_symm(dom);
-        W_asymm     = W_asymm(dom);
         
         [NY,NX]=size(mesh_bak.X);
 
         W       = reshape(W         ,NY,NX);
-        W_symm  = reshape(W_symm    ,NY,NX);
-        W_asymm = reshape(W_asymm   ,NY,NX);
 
+        if mesh.y_symmetry
+            
+            Dy_symm     = Dy_symm(dom,dom);
+            D2y_symm    = D2y_symm(dom,dom);
+            Dy_asymm    = Dy_asymm(dom,dom);
+            D2y_asymm   = D2y_asymm(dom,dom);
+        
+            W_symm      = W_symm(dom);
+            W_asymm     = W_asymm(dom);
+            
+            W_symm  = reshape(W_symm    ,NY,NX);
+            W_asymm = reshape(W_asymm   ,NY,NX);
+        end
+        mesh.X       = reshape(mesh.X(dom),NY,NX);
+        mesh.Y       = reshape(mesh.Y(dom),NY,NX);
+        mesh.ngp     = length(dom);
+        mesh.usedInd = (1:mesh.ngp)';
     end
 
     %finalize with mixed second derivatives
@@ -222,7 +228,6 @@ function  mesh = AddDW2mesh(mesh)
 
     mesh.Dy  = Dy ;
     mesh.D2y = D2y; 
-    
     
     mesh.W   = W ; 
 
@@ -240,7 +245,6 @@ function  mesh = AddDW2mesh(mesh)
         mesh.Dxy_symm = Dy_symm*Dx; 
         mesh.Dyx_symm = Dx*Dy_symm; 
 
-        
         mesh.W_symm    = W_symm ; 
         mesh.W_asymm   = W_asymm ; 
     end

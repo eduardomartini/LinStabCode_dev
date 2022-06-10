@@ -202,7 +202,7 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
     end
     
     
-    L0 = (RHS/1i)\LHS ;
+    L0 = (RHS/-1i)\LHS ;
     
     %% Add sponge function to the linear operator
     sponge  = mesh.sponge(mesh.usedInd);

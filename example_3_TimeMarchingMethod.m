@@ -191,13 +191,16 @@ H(idx_dirchlet,idx_dirchlet)=0;
 
 
     % setup scheme
-dt = 5e-2;
+dt = 5e-1;
 
 maxIter = 1;
 n_block        = [maxIter];
-i_block_output = [maxIter];
+i_block_output = [0];
 
 tic
+%     H = speye(size(L1));
+
+%     [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L1,dt,[],[],1e-4,0);
     [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L0,dt,[],[],1e-4,0);
 %     TM_setup = TM_BDF2_Setup(H,L0,dt,[],[],1e-4,2);
     time_eig_TM_part1 = toc();
@@ -205,7 +208,8 @@ tic
     Adj = @(q0) TM(q0,@(t) zeros(size(H,1),1) ,maxIter,TM_setup_adj,i_block_output,n_block,1e-6);
 
 %     ritz1 = lambda_std;
-   ritz1 = eigs(Dir, size(H,1), neigs, 'lm', opts);
+   [V1,ritz1] = eigs(Dir, size(H,1), neigs, 'lm', opts);
+   ritz1=diag(ritz1);
    ritz2 = eigs(Adj, size(H,1), neigs, 'lm', opts);
 time_eig_TM = toc;
 lambda_tm1 = (ritz1-1)./(dt*ritz1);
@@ -214,5 +218,19 @@ disp(['Elapsed time for time marching approach, ' num2str(time_eig_TM) 's'])
 
 disp([size(L0,1)])
 disp([lambda_std,lambda_tm1,lambda_tm2])
+
+%%
+    ndofs = size(L0,1);
+    used_dofs = 1:ndofs;  used_dofs(idx_dirchlet)=[];
+    U = zeros(ndofs,1);
+    U=V1;
+    figure('name','Resolvent forcing and response modes')
+    vars = {real(U(idx.rho_j)) ,'$\rho$'; 
+            real(U(idx.u_j  )) ,'$u$'; 
+            real(U(idx.v_j  )) ,'$v$'; 
+            real(U(idx.w_j  )) ,'$w$'; 
+            real(U(idx.T_j  )) ,'$T$' };
+    plotFlow(mesh.X,mesh.Y,vars,3,2)
+
 
 fprintf('Time (std/TM) : %3.3e / %3.3e / %3.3e , error : %3.1e\n',time_eig_std,time_eig_TM_part1,time_eig_TM, abs(sort(lambda_std)-sort(lambda_tm)))

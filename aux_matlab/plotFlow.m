@@ -1,4 +1,4 @@
-function plotFlow(X,Y,vars,nr,nc,usedInd)
+function [axs] = plotFlow(X,Y,vars,nr,nc,usedInd,varargin)
     % plotFlow(X,Y,vars,nr,nc)
     %creates a subplot structure to make contour plots of flow quantities.
     % Inputs 
@@ -17,18 +17,22 @@ nVars   = size(vars,1);
 if exist('nr');  if isempty(nr); nr = ceil(sqrt(nVars)); end; end
 if exist('nc');  if isempty(nc); nc = nr               ; end; end
 
-if ~exist('usedInd')
+if ~( exist('usedInd') && ~isempty(usedInd)) 
     usedInd = 1:numel(X);
 end
 
 for i=1:nVars
-    subplot(nr,nc,i)
+    axs(i) = subplot(nr,nc,i);
     var = nan(size(X));
     
     var(usedInd) = vars{i,1};
     
-    pcolor(X,Y,var); shading interp
+    contour_varargin = {X,Y,var,varargin{:}};
+    contourf(contour_varargin{:}); 
+%     contourf(X,Y,var,'linecolor','none',varargin); 
+    shading interp
+%     pcolor(X,Y,var); shading interp
     colorbar;
-    axis equal tight
+%     axis equal tight
     title(vars{i,2});
 end

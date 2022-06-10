@@ -31,7 +31,7 @@ function mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,y_symmetry,x_periodicity,
     
     % matrices and integration weights.
 
-    % Create mesh
+    % Correct domain length to avoid points on the symmetry line
     if (y_symmetry==true && yrange(1)==0)
         % to use symmetry around the bottom y boundary, point at y = 0 is
         % removed
@@ -39,6 +39,13 @@ function mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,y_symmetry,x_periodicity,
         yrange(1) = yrange(1)+dy/2;       
     end
     
+    % Correct domain length to account for periodicity
+    if x_periodicity
+        xrange(2) = (xrange(2)-xrange(1)) * Nx/(Nx+1) + xrange(1);
+    end
+    
+    
+    % Create mesh
     x = linspace(xrange(1),xrange(2),Nx)';
     y = linspace(yrange(1),yrange(2),Ny)';
     
