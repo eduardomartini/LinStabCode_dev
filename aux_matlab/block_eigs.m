@@ -1,4 +1,4 @@
-function [V,LAMBDA,resHist] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol)
+function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol)
 
     np_kirlov=nkirlov*pkirlov; 
     v = zeros(n,np_kirlov);
@@ -11,8 +11,8 @@ function [V,LAMBDA,resHist] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov
     i_kirlov = 0 ;  % initialize index for kirlov space 
     resHist=[];
     for i_iter = 1:300
-    while i_kirlov < nkirlov
-        n_space  = i_kirlov*pkirlov;
+    while i_kirlov < np_kirlov
+        n_space  = i_kirlov;
         i_start = n_space+1;
         i_end   = n_space+pkirlov;
         
@@ -27,7 +27,7 @@ function [V,LAMBDA,resHist] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov
 
         % Apply linear operator on the new vectors
         for j  = 1:pkirlov
-            fprintf('   Filling in w_%.0d\n',i_curr+j)
+            fprintf('   Filling in w_%.0d\n',i_curr(j))
             w(:,i_curr(j)) = fun(v(:,i_curr(j)));        
         end
         
@@ -46,15 +46,30 @@ function [V,LAMBDA,resHist] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov
         V       = v(:,1:n_space)*psi;
         LAMBDA  = lambda;
         
-        res = abs(norm(fk) * psi(end,:));
-        resHist(1:i_kirlov+1,end+1)=sort(abs(res));
-        p=(abs(res)>tol);
+        % Av = w = v*v'*w + (1-v*v')*w
+        % Av = w = v*H + f
+        % H psi = psi * L
+        % A v psi  = v*H*psi + f*psi
+        % A V = v*H*psi + f*psi
+        % A V = v*psi*L + f*psi
+        % A V = V*L + f*psi
+        % A V_i = V_i*L_i + (f*psi)_i
+        
+        i_kirlov = i_kirlov + pkirlov;
+
+        
+        f = w-v*v'*w;
+        ff = f(:,1:i_kirlov)*psi;
+        res = sqrt(sum(abs(ff(:,1:i_kirlov)).^2,1));
+        resHist(1:i_kirlov,end+1)=sort(abs(res));
+%         norm(fk * psi(end,:))
+%         res = abs(norm(fk) * psi(end,:));
+%         resHist(1:i_kirlov+1,end+1)=sort(abs(res));
+        p=(abs(res(1:i_kirlov))>tol);
         n_conv = sum(~p);
         fprintf('Iter %d , %d convergend modes. Min res %e , min non-converged res %e, |fk|=%e \n',i_iter,n_conv,min(res),min(res(p)),norm(fk(:,end)));
         if (n_conv >= neigs); return; end
 
-        %set next initial seeds
-        i_kirlov = i_kirlov + pkirlov;
 
     end
     
@@ -82,7 +97,7 @@ function [V,LAMBDA,resHist] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov
         i_kirlov = i_kirlov-1;
         
         H  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);
-        fk = w(:,i_kirlov);
+        fk = w(:,i_kirlov-pkirlov+1:i_kirlov);
         
     end 
     end

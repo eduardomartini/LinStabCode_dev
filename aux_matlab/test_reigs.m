@@ -5,25 +5,16 @@ for i=1:n-1
 end
 fun = @(x) A*x;
 
-neigs   = 3;
-nkirlov = 21;
+neigs   = 10;
+nkirlov = 11;
 mkirlov = 1 ; 
 pkirlov = 2 ;
 tol     = 1e-8;
 
-v = randn(n,1);
-for i=1:n
-    [v,~] = qr(A*v,0);
-end
 %%
-w=A*v
-[norm(w-v*v'*w),v'*w,((n-1)/n)^n]
-%%
-% tol     = 1e-3;
-% [v,l] = reigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol);
-[v,l,r]  = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol);
-[~,~,r2] = eigs_blockshur(fun,n,neigs,nkirlov,10,pkirlov,tol);
-% % [l,diag(eig(g(v'*A*v)]
+[v,l,r]  = eigs_blockshur(fun,n,neigs,nkirlov*pkirlov,mkirlov,1,tol);
+[~,~,r2] = eigs_blockshur(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol);
+
 %%
 [V,L] = eig(A);
 [L,order]=sort(diag(L),'descend');
@@ -39,7 +30,12 @@ x=1:ncalls;
 
 ncalls = size(r2,2);
 x2=1:ncalls;
-semilogy(x,r,'k',x2,r2,'bo',x,x*0+tol,'r')
+subplot(211)
+    semilogy(x,r,'k',x2,r2,':b',x,x*0+tol,'r')
+    xlabel('Iterations')
+subplot(212)
+    semilogy(x,r,'k',x2*pkirlov,r2,':b',x,x*0+tol,'r')
+    xlabel('Function calls')
 % 
 % vv=v(:,1:neigs)
 % w = A*vv;
