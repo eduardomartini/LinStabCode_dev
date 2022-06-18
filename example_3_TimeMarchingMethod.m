@@ -161,13 +161,14 @@ C                       = B;    % ignore output temperature, density and dir.b.c
 
 
 %% Eigenvalues 
-neigs = 1;
+neigs = 5;
 
 
-opts.tol    = eps;
+opts.tol    = 1e-8;
 opts.disp   = 2;
 opts.issym  = false;
 opts.isreal = false;
+opts.p      = 100;
 
 % using standard approaches
 L1 = L0;
@@ -191,29 +192,34 @@ H(idx_dirchlet,idx_dirchlet)=0;
 
 
     % setup scheme
-dt = 5e-1;
+dt = 5e-2;
 
 maxIter = 1;
 n_block        = [maxIter];
 i_block_output = [0];
 
-tic
+    tic
 %     H = speye(size(L1));
 
 %     [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L1,dt,[],[],1e-4,0);
-    [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L0,dt,[],[],1e-4,0);
+    [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L0,dt,[],[],1e-4,2);
 %     TM_setup = TM_BDF2_Setup(H,L0,dt,[],[],1e-4,2);
     time_eig_TM_part1 = toc();
     Dir = @(q0) TM(q0,@(t) zeros(size(H,1),1) ,maxIter,TM_setup   ,i_block_output,n_block,1e-6);
     Adj = @(q0) TM(q0,@(t) zeros(size(H,1),1) ,maxIter,TM_setup_adj,i_block_output,n_block,1e-6);
 
 %     ritz1 = lambda_std;
+tic
    [V1,ritz1] = eigs(Dir, size(H,1), neigs, 'lm', opts);
-   ritz1=diag(ritz1);
-   ritz2 = eigs(Adj, size(H,1), neigs, 'lm', opts);
+time_eigs_TM = toc;
+tic
+   [V1,ritz1] = block_eigs(Dir, size(H,1), neigs,opts.p/5,opts.p/10,5,opts.tol);
+time_block_eigs = toc;
+%    ritz1=diag(ritz1);
+%    ritz2 = eigs(Adj, size(H,1), neigs, 'lm', opts);
 time_eig_TM = toc;
 lambda_tm1 = (ritz1-1)./(dt*ritz1);
-lambda_tm2 = (ritz2-1)./(dt*ritz2);
+% lambda_tm2 = (ritz2-1)./(dt*ritz2);
 disp(['Elapsed time for time marching approach, ' num2str(time_eig_TM) 's'])
 
 disp([size(L0,1)])
