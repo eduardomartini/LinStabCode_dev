@@ -42,11 +42,12 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     
     %Perform nIter iterations
     for i_iter = 1:n_Iter
+        disp(['Computing iteration : ' num2str(i_iter)])
         %save input data
         f_in(:,:,:,i_iter) =  f_prev ; 
 
         %define forcing term for the direct problem
-        parfor i_m=1:mRSVD                
+        for i_m=1:mRSVD                
             %%
             f = @(t) B*squeeze(f_prev(:,i_m,:))*exp(-2i*pi*fList.'*t);
             q0   = zeros(nq*nq_multi,1);
@@ -57,15 +58,6 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
             q_hat = ifft(q,[],2)*nf*dt_sampling;            
             q_hat = W*q_hat;
             
-            
-%             subplot(211)
-% %                 [q_hat,-L0\squeeze(f_prev(:,i_m,:))]
-% % 
-%                 fadj = @(t) q_hat             *exp(-2i*pi*fList.'*t);
-%                 tt = (0:size(qhist,2)-1)*dt;
-%                 qtest = fadj(tt );
-%                 plot(tt,qhist(1,:),tt,qtest(1,:),':',[i_out+n_block*1]*dt,q(1,:),'o');
-
             %define forcing term for the adjoint problem
             
             % Normalize frequenci components

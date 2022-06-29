@@ -170,3 +170,53 @@ if verbose
     vars = {real(V(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U(idx.u_j,1)) ,'$u^{(1)}$';real(V(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U(idx.u_j,2)) ,'$u^{(2)}$';real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U(idx.u_j,3)) ,'$u^{(3)}$';};
     plotFlow(mesh.X,mesh.Y,vars,3,2)
 end
+
+
+%%
+%% Time marching methods 
+
+filter    = mesh.filters.filter;
+filter_ct = mesh.filters.filter_ct;
+FILTER    = @(x) reshape( filter   ( reshape(x,[],5)),[],1) ; 
+FILTER_ct = @(x) reshape( filter_ct( reshape(x,[],5)),[],1) ; 
+
+
+H = speye(size(L0));
+H(idx_dirchlet,idx_dirchlet)=0;
+dt=5e-1;
+% 
+% L1 = L0;
+% L1(idx_dirchlet,:)=[];
+% L1(:,idx_dirchlet)=[];
+% H = speye(size(L1));
+ii = 1:size(L0,1);
+% ii(idx_dirchlet) = [];
+
+tic
+verbose=true;
+% opts.type = 'lu';
+opts.type = 'builtin';
+[TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L0,dt,verbose,opts,FILTER,FILTER_ct);
+time_iLU = toc;
+
+tic
+nIter   = 8     ;
+tol     = 1e-3  ;
+deltaF  = 1     ;
+nfreqs  = 1     ;
+mRSVD   = 1     ;
+
+[Stm,~,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
+time_tm = toc;
+
+tic
+mRSVD=4;
+[Stm2,~,fList2,SS_conv2] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
+time_tm2 = toc;
+
+figure('name','Gains convergence')
+    plot(1:nIter, SS_conv.','-b',1:nIter, SS_conv2.','-r',1:nIter,repmat(S,1,nIter),'k:') 
+    xlabel('iterations');
+    ylabel('gain');
+    title('Gain convergence')
+    

@@ -1,6 +1,7 @@
-function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol)
+function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol)
 
-    np_kirlov=nkirlov*pkirlov; 
+    np_kirlov=round(nkirlov/pkirlov)*pkirlov; 
+    mkirlov=round(mkirlov/pkirlov)*pkirlov; 
     v = zeros(n,np_kirlov);
     w = zeros(n,np_kirlov);
     
@@ -21,17 +22,43 @@ function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol
         i_all  = 1:i_end ;
         
         % add new vector and ortogonalize
+%         v(:,i_curr)     = qr(fk-v(:,i_all)*(pinv(v(:,i_all))*fk),0);
+
         v(:,i_curr)     = fk;
         [v(:,i_all),R]  = qr(v(:,i_all),0);
         w(:,i_prev)     = w(:,i_prev)/R(i_prev,i_prev);
 
         % Apply linear operator on the new vectors
+%         f = parfeval(@magic,1,10);
+%         value = fetchOutputs(f);
+
+        input  = v(:,i_curr);
+        output = zeros(size(input));
         for j  = 1:pkirlov
-            fprintf('   Filling in w_%.0d\n',i_curr(j))
-            w(:,i_curr(j)) = fun(v(:,i_curr(j)));        
+%             fprintf('   Filling in w_%.0d\n',i_curr(j))
+%             future(j) = parfeval(fun,1,input(:,j));
+            w(:,i_curr(j))=fun(input(:,j));
         end
+%         for j  = 1:pkirlov
+%             w(:,i_curr(j)) = fetchOutputs(future(j));
+%         end
         
-        
+
+
+%         input  = v(:,i_curr);
+%         output = zeros(size(input));
+%         parfor j  = 1:pkirlov
+% %             fprintf('   Filling in w_%.0d\n',i_curr(j))
+%             output(:,j) = fun(input(:,j));        
+%         end
+%         w(:,i_curr) = output;
+            
+%         for j  = 1:pkirlov
+%             fprintf('   Filling in w_%.0d\n',i_curr(j))
+%             w(:,i_curr(j)) = fun(v(:,i_curr(j)));        
+%         end
+%         
+%         
         % project out part of w that in the v subspace                
         n_space  = n_space+pkirlov;
 
@@ -58,8 +85,13 @@ function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol
         i_kirlov = i_kirlov + pkirlov;
 
         
-        f = w-v*v'*w;
-        ff = f(:,1:i_kirlov)*psi;
+    % Compute full residualds
+%         f = w-v*v'*w;
+%         ff = f(:,1:i_kirlov)*psi;
+    % Compute only relevant residualds
+        f =  fk;%w(:,1:i_kirlov)-v*v'*w(:,1:i_kirlov);
+        ff = f*psi(end-pkirlov+1:end,:);
+        
         res = sqrt(sum(abs(ff(:,1:i_kirlov)).^2,1));
         resHist(1:i_kirlov,end+1)=sort(abs(res));
 %         norm(fk * psi(end,:))
@@ -67,8 +99,12 @@ function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol
 %         resHist(1:i_kirlov+1,end+1)=sort(abs(res));
         p=(abs(res(1:i_kirlov))>tol);
         n_conv = sum(~p);
-        fprintf('Iter %d , %d convergend modes. Min res %e , min non-converged res %e, |fk|=%e \n',i_iter,n_conv,min(res),min(res(p)),norm(fk(:,end)));
-        if (n_conv >= neigs); return; end
+        fprintf('Iter %d, %d , %d convergend modes. Min res %e , min non-converged res %e, |fk|=%e \n',i_iter,i_curr(end),n_conv,min(res),min(res(p)),norm(fk(:,end)));
+        if (n_conv >= neigs) 
+            LAMBDA_conv = LAMBDA(1:neigs);
+            LAMBDA_all  = LAMBDA;
+            return; 
+        end
 
 
     end
@@ -80,11 +116,11 @@ function [V,LAMBDA,resHist] = block_eigs(fun,n,neigs,nkirlov,mkirlov,pkirlov,tol
     % Implicit shift and invert
     lambdatar = sort(lambda); 
     
-    lambdatar=lambdatar(1:mkirlov*pkirlov);
+    lambdatar=lambdatar(1:mkirlov);
     
     ilamb = 0;
     Q = eye(size(H));
-    for i=1:mkirlov*pkirlov
+    for i=1:mkirlov
         l = lambdatar(i);
         H0 = H;
         [Q,R] = qr(H(1:i_kirlov,1:i_kirlov)-eye(i_kirlov)*l);
