@@ -1,8 +1,9 @@
-function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model)
+function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model,floquetExp)
     % Constructs spatial linear operator
     % (L + omega Lw] q' = alpha R q',
     % where q' = [q; alpha q]
-    
+    if ~exist('floquetExp','var'); floquetExp=0 ;end
+
     tic; 
     disp('Computing spatial stability operator')
     if ~strcmp(model,'2D')
@@ -15,9 +16,9 @@ function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model)
     
     % RHS : R0  + alpha R1 + alpha^2 R2
     % Using solutions for RHS with alpha 0,-1 and +1 to obtain Ri
-    [A_0 ,idx] = GetLinProblem(mesh,BF,model,alpha_0 );
-    [A_p1,~]   = GetLinProblem(mesh,BF,model,alpha_p1);
-    [A_m1,~]   = GetLinProblem(mesh,BF,model,alpha_m1);
+    [A_0 ,idx] = GetLinProblem(mesh,BF,model,alpha_0 ,floquetExp);
+    [A_p1,~]   = GetLinProblem(mesh,BF,model,alpha_p1,floquetExp);
+    [A_m1,~]   = GetLinProblem(mesh,BF,model,alpha_m1,floquetExp);
     n = size(A_0,1);
     Z = sparse(n,n);
     I = speye(n);

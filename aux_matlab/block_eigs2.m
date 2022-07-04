@@ -31,17 +31,17 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
 %             v(:,i) = v(:,i)-projv
 %         end
 
-%         v(:,i_curr)     = fk;
-%         for i=i_curr
-%            [proj2 , ~] = matlab.internal.math.projectInto(v, v(:,i), i-1);
-%             v(:,i) = v(:,i) - proj2; 
-%             v(:,i)=v(:,i)/norm(v(:,i));
-%         end
+        v(:,i_curr)     = fk;
+        for i=i_curr
+           [proj2 , ~] = matlab.internal.math.projectInto(v, v(:,i), i-1);
+            v(:,i) = v(:,i) - proj2; 
+            v(:,i)=v(:,i)/norm(v(:,i));
+        end
 
-        [v(:,i_curr),R]     = qr(fk,0);
+%         [v(:,i_curr),R]     = qr(fk,0);
 
-        [v(:,i_all),R]     = qr(v(:,i_all),0);
-        w(:,i_prev)     = w(:,i_prev)/R(i_prev,i_prev);
+%         [v(:,i_all),R]     = qr(v(:,i_all),0);
+%         w(:,i_prev)     = w(:,i_prev)/R(i_prev,i_prev);
         
         input  = v(:,i_curr);
         output = zeros(size(input));
@@ -51,7 +51,7 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
             end
             w(:,i_curr) = output;
         else    
-            for j  = 1:pkirlov
+            parfor j  = 1:pkirlov
                output(:,j) = applyOP(input(:,j));        
             end
             w(:,i_curr) = output;
@@ -59,15 +59,12 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
 
 
         % project out part of w that in the v subspace                
-%         for i=i_curr
-%             for j=1:i
-%                 H(j,i)  = v(:,j)' * w(:,i) ;
-%             end
-%             for j=1:min(pkirlov,i-1) 
-%                 H(i,i-j)  = v(:,i)' * w(:,i-j) ;
-%             end
-%         end
-% 
+        for i=i_curr
+            H(1:i,i) = v(:,1:i)' * w(:,i) ;
+            H(i,1:i) = v(:,i)' * w(:,1:i) ;
+        end
+%         H(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)' * w(:,1:i_kirlov) ;
+
 %         for j=1:pkirlov
 %             [proj , ~] = matlab.internal.math.projectInto(v, w(:,i_curr(j)), i_kirlov+pkirlov);
 %             fk(:,j) = w(:,i_curr(j)) - proj;
@@ -75,10 +72,11 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
 
         i_kirlov = i_kirlov + pkirlov;
 
-        H(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)' * w(:,1:i_kirlov) ;
         fk = w(:,i_curr)  - v(:,1:i_kirlov)*H(1:i_kirlov,i_kirlov);
 
-        check_conv = mod(i_kirlov,1)==0;
+%         spy(abs(H(1:i_kirlov,1:i_kirlov)-v(:,1:i_kirlov)' * w(:,1:i_kirlov))>1e-8)
+        
+        check_conv = mod(i_kirlov,10)==0 | i_kirlov == np_kirlov;
         if check_conv
             [psi,lambda] =  eig(H(1:i_kirlov,1:i_kirlov)); lambda=diag(lambda);
             [lambda,order] = sort(lambda,'descend');
@@ -138,7 +136,7 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
     Q = eye(size(H));
     for i=1:mkirlov
         l = lambdatar(i);
-        H0 = H;
+%         H0 = H;
         [Q,R] = qr(H(1:i_kirlov,1:i_kirlov)-eye(i_kirlov)*l);
         
         v(:,1:i_kirlov) = v(:,1:i_kirlov)*Q;
@@ -151,11 +149,19 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
         H(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);        
     end 
         
-    fk = w(:,i_kirlov-pkirlov+1:i_kirlov);
-    for j=1:pkirlov
-        [proj , ~] = matlab.internal.math.projectInto(v, w(:,i_kirlov-pkirlov+1), i_kirlov);
-        fk(:,j) =fk(:,j) - proj;
-    end
+    %Stabilizes the method
+    
+    [v(:,1:i_kirlov),R]     = qr(v(:,1:i_kirlov),0);
+    w(:,1:i_kirlov)         = w(:,1:i_kirlov)/R;
+    H(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);        
+       
+    [fk,~] = qr(w(:,i_kirlov-pkirlov+1:i_kirlov),0);
+    
+%     fk = w(:,i_kirlov-pkirlov+1:i_kirlov);
+%     for j=1:pkirlov
+%         [proj , ~] = matlab.internal.math.projectInto(v, w(:,i_kirlov-pkirlov+1), i_kirlov);
+%         fk(:,j) =fk(:,j) - proj;
+%     end
 %     fk = w(:,i_kirlov-pkirlov+1:i_kirlov);
 %     [psi,lambda] =  eig(H(1:n_space,1:n_space)); lambda=diag(lambda);
 

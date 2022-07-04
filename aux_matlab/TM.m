@@ -1,4 +1,4 @@
-function [q_out,varargout] = TM(q0,f,nsteps,TM_setup,i_block_output,n_block,tol,filter_fun)
+function [q_out,varargout] = TM(q0,f,nPeriods,TM_setup,i_block_output,n_block,tol,filter_fun)
     flag_saveHist =  nargout==2 ; 
 
     if ~exist('filter_fun'); filter_fun = @(x) x;end
@@ -21,8 +21,8 @@ function [q_out,varargout] = TM(q0,f,nsteps,TM_setup,i_block_output,n_block,tol,
     end
     
     if flag_saveHist
-        if isinf(nsteps) ; qhist=nan(n,1);
-        else             ; qhist=nan(n,nsteps);
+        if isinf(nPeriods) ; qhist=nan(n,1);
+        else               ; qhist=nan(n,nPeriods*n_block);
         end
     end
     
@@ -34,17 +34,17 @@ function [q_out,varargout] = TM(q0,f,nsteps,TM_setup,i_block_output,n_block,tol,
     
     q_check    = q ; % vector containing previous state for error estimation
     q_out(:,1) = q ; % initialize output vector
-    while err>tol && i_iter <nsteps
+    while err>tol && i_iter/n_block <nPeriods
         time = i_iter*dt;
         i_iter=i_iter+1;
         
         qold = q;
 
-        q = invAl ( Ar(q)+f_fun(f,time) );
+        q = invAl ( Ar(q)+f_fun(f,time));
         q = filter_fun(q);
         
         if mod(i_iter,n_block)==0
-            err = norm(q_check-q);
+            err = norm(q_check-q)/max(norm(q),norm(q_check));
             q_check=q;
         end
         

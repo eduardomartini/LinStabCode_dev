@@ -1,4 +1,4 @@
-function [TM_setup,TM_setup_adj,Al,Ar] = TM_EulerImplicit_Setup(H,L,dt,verbose,opts,filter,filter_ct)
+function [TM_setup,TM_setup_adj,Al,Ar] = TM_EulerImplicit_Setup(H,L,dt,verbose,opts,filters)
     
     if ~exist('verbose','var') ; verbose   =false ; end
     if ~exist('opts','var')    ; opts=struct('type','ilu');end
@@ -22,11 +22,16 @@ function [TM_setup,TM_setup_adj,Al,Ar] = TM_EulerImplicit_Setup(H,L,dt,verbose,o
     TM_setup.n              = size(L,1);
     TM_setup.n_multi        = 1;
     
-    if ~exist('filter','var') 
-        TM_setup.invAl_fun      = invAl_fun;    
+    if exist('filters','var') 
+        FILTER    = @(x) reshape( filters.filter   ( reshape(x,[],5)),[],1) ; 
+        FILTER_ct = @(x) reshape( filters.filter_ct( reshape(x,[],5)),[],1) ; 
     else
-        TM_setup.invAl_fun      = @(x) filter(invAl_fun(x)) ;
+        FILTER    = @(x) x ; 
+        FILTER_ct = @(x) x ; 
     end
+
+
+    TM_setup.invAl_fun      = @(x) FILTER(invAl_fun(x)) ;
     TM_setup.Ar_fun         = Ar_fun;  
     
     TM_setup.dt             = dt;
@@ -36,11 +41,8 @@ function [TM_setup,TM_setup_adj,Al,Ar] = TM_EulerImplicit_Setup(H,L,dt,verbose,o
     
 
     TM_setup_adj            = TM_setup;
-    if ~exist('filter','var') 
-        TM_setup_adj.invAl_fun  = invAl_H_fun;  
-    else
-        TM_setup_adj.invAl_fun  = @(x) filter_ct(invAl_H_fun(x));  
-    end
+    TM_setup_adj.invAl_fun  = @(x) FILTER_ct(invAl_H_fun(x));  
+    
     TM_setup_adj.Ar_fun     = Ar_H_fun;
 
     disp(   ['Done in' datestr(toc/24/3600, 'HH:MM:SS')  ' \n'] )

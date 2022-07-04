@@ -1,4 +1,4 @@
-function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C,mRSVD)
+function [S,V,fList,SS_conv] = TM_Resolvent_2(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C,mRSVD)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     if ~exist('mRSVD','var')     ; mRSVD=1; end
@@ -53,7 +53,11 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
             
             %Apply the Resolvent operator
             flagAdj = false;
-            q_hat = CRB_TM(TM_setup,fList,q0,squeeze(f_prev(:,i_m,:)),B,C,i_out,n_block,inf,tol,flagAdj);
+%             q_hat2 = CRB_TM(TM_setup,fList,q0,squeeze(f_prev(:,i_m,:)),B,C,i_out,n_block,inf,tol,flagAdj);
+            
+            q_hat = CRB_TM_gmres(TM_setup,fList,squeeze(f_prev(:,i_m,:)),B,C,i_out,n_block,tol,flagAdj);
+
+%             norm(q_hat-q_hat2)
             q_hat = W*q_hat;
             
             
@@ -66,7 +70,8 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
 
             %Apply the Adjoint Resolvent operator
             flagAdj = true;
-            f_hat = CRB_TM(TM_setup_adj,fList,q0,q_hat,B,C,i_out,n_block,inf,tol,flagAdj);
+%             f_hat2 = CRB_TM      (TM_setup_adj,fList,q0,q_hat,B,C,i_out,n_block,inf,tol,flagAdj);
+            f_hat = CRB_TM_gmres(TM_setup_adj,fList,   q_hat,B,C,i_out,n_block,tol,flagAdj);
 
             f_hat = invW*f_hat;
             

@@ -1,19 +1,22 @@
-function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
+function [L0,idx] = GetLinProblem(mesh,BF,model,mkx,floquetExp)
     % [LHS,RHS] = GetLHSRHS(mesh,BF,m,Re,sponge)
     % Creates LHS and RHS operators of the LNS equations, such that
     % LHS dq/dt = RHS q , q=[rho,u,v,w,T].
     % Inputs ; 
-    %       mesh    : mesh object containing the spatial coordiantes,
+    %       mesh        : mesh object containing the spatial coordiantes,
     %           diferentiation matrices and integration weights.
-    %       BF      : object containing the baseflow to be used, including a
-    %           sponge function
-    %       model   : selects cartesian ('2D') or axysimmetric model ('axi')
-    %       mkx     : provides the wavenumber in x (kx, if model='2D', ir
-    %           the azymuthal number (m), if model= 'axy'
+    %       BF          : object containing the baseflow to be used, 
+    %           including a sponge function
+    %       model       : selects cartesian  ('2D') or                        
+    %                     axysimmetric       ('axi') model
+    %       mkx         : provides the wavenumber in x (kx, if model='2D',
+    %           in the azymuthal number (m), if model= 'axy'
+    %       floquetExp  : floquet exponent along the z direction
     % Outputs :
     %       L0      : matrix representing the linear system dqdt = L0 q 
     %       idx     : matrix representing the linear system dqdt = L0 q 
     
+    if ~exist('floquetExp','var'); floquetExp=0 ;end
     tic
     % Get mesh and scalar diff. matrices.
     z = mesh.X(mesh.usedInd);
@@ -98,12 +101,24 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx)
         DZ  =blkdiag(Dz ,Dz ,Dz ,Dz ,Dz );
         D2Z =blkdiag(D2z,D2z,D2z,D2z,D2z);
         D2RZ=blkdiag(Dzr,Dzr,Dzr,Dzr,Dzr);
-        getCoeffsLaminar_Cartesian
+        
     else
         m=mkx;
         Re = BF.Re;
         [DR,D2R,DZ,D2Z,D2RZ,D2ZR] =   CreateDiffMatrices_Axy(mesh,m);
         getCoeffsLaminar
+    end
+    
+    if floquetExp ~= 0
+        II = speye(size(DZ));
+        DZ   = DZ   + 1i*floquetExp*II  ;
+        D2RZ = D2RZ + 1i*floquetExp*II  ;
+        D2Z  = D2Z  + 2i*floquetExp*DZ -floquetExp^2*II;
+    end
+
+    %get coefficients of the linear operator
+    if strcmp(model,'2D')   ; getCoeffsLaminar_Cartesian 
+    else                    ; getCoeffsLaminar
     end
 
     %build matrices from coefficients
