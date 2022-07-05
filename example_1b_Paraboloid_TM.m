@@ -18,12 +18,12 @@ m           = 30;           % azimuthal wave number
 nEig        = 3;            % Arnoldi method number of eigenvalues
 
 % Domain & grid
-Nr          = 50;           % # of grid points (radial)
-Nz          = 50;           % # of grid points (streamwise)
+Nr          = 50*2;           % # of grid points (radial)
+Nz          = 50*2;           % # of grid points (streamwise)
 FDorder     = 4;            % finite difference order of accuracy
 
 % Flags
-verbose     = true;         % visualize grid, base flow and results
+verbose     = false;         % visualize grid, base flow and results
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create mesh and obtain differentiation matrices                        %
@@ -32,7 +32,7 @@ verbose     = true;         % visualize grid, base flow and results
 % Cartesian mesh in computational domain
 y_symmetry      = true;     % use symmetry on y coordinate around y=0 (for axysymmetric problems)
 x_periodicity   = false;    % use periodic b.c. on x
-alpha           = 'none'    ;    % spatial filter coefficient
+alpha           = .1     ;    % spatial filter coefficient
 xrange          = [-1 0 ];  % domain range in x
 yrange          = [ 0 1 ];  % domain range in y
 
@@ -162,15 +162,6 @@ H = speye(size(L0));
 H(idx_dirchlet,idx_dirchlet)=0;
 ii = 1:size(L0,1);
 
-dt=5e-1;
-% 
-L1 = L0;
-
-L1(idx_dirchlet,:)=[];
-L1(:,idx_dirchlet)=[];
-H = speye(size(L1));
-ii(idx_dirchlet) = [];
-
 tic
 verbose=true;
 % solver options
@@ -178,29 +169,31 @@ opts.type = 'ilu';        % uses a ilu preconditioned iterative method
     opts.verbose = true ; % prints iterative solver messages. Use it to be 
                           % sure the solver is converging and that the 
                           % cost/number of iterations is reasonable
-    opts.maxIter = 100  ; % max iterations to be performed by the iterative approach
+    opts.maxIter = 100  ; % max iterations to be performed by the solver
     opts.tol     = 1e-8 ; % residual tolerance for the solver
     opts.toliLU  = 1e-6 ; % drop tolerance for ilu preconditioning
-    opts.solver  = 'cgs'  ; % iterative solver to be used : gmres, bicg, cgs
-% opts.type = 'builtin';  % uses matlab internal function to solve lin. sys.
-% opts.type = 'lu';       % uses a complete LU decomposition
+    opts.solver  = 'cgs'; % iterative solver to be used : gmres, bicg, cgs
+opts.type = 'builtin';  % uses matlab internal function to solve lin. sys.
+opts.type = 'lu';       % uses a complete LU decomposition
     
-    
-% [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L1,dt,verbose,opts);
-[TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H,L1,dt,verbose,opts);
+
+dt=5e-1;    
+% [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts);
+[TM_setup,TM_setup_adj] = TM_BDF2_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts,mesh.filters);
 time_iLU = toc;
 
 tic
-nIter   = 4     ;   % number of iterations to be made
+nIter   = 10     ;   % number of iterations to be made
 tol     = 1e-4  ;   % tolerance for the identification of the stedy state
-deltaF  = 1     ;   % Step of the frequency domain discretization
+deltaF  = .025   ;   % Step of the frequency domain discretization
 nfreqs  = 1     ;   % Number of frequencies to be solved for
-mRSVD   = 3     ;   % Size of blocks in the iterative process (orthogonal vectors is RSVD)
-                    % Values >1 only recomenended if iterative methods are
-                    % used, due to large memory footprint of matlab parallelizations.
+mRSVD   = 1     ;   % Size of blocks in the iterative process 
+                    % (orthogonal vectors is RSVD). Values >1 only 
+                    % recomenended if iterative methods are used, due to 
+                    % large memory footprint of matlab parallelizations.
 % 
-if false
-    [Stm,~,fList,SS_conv] = TM_Resolvent (TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
+if true
+    [Stm,~,fList,SS_conv] = TM_Resolvent(  TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
 else    
     [Stm,~,fList,SS_conv] = TM_Resolvent_2(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
 end
@@ -212,13 +205,14 @@ time_tm = toc;
 clear S
 for i=1:length(fList)
     % Compute optimal forcings and responses
-    [S{i},U,V]                 = resolvent(L0,W,invW,2*pi*fList(i),nEig,B,C,mesh.filters);
+    [S{i},U,V]                 = resolvent(L0,W,invW,2*pi*fList(i),10,B,C,mesh.filters);
 end
-%
+%%
 figure('name','Gains convergence')
 for i=1:length(fList)
-    subplot(length(fList),1,i)
-    plot(1:nIter, SS_conv(:,:,i).','-b',1:nIter,repmat(S{i},1,nIter)','k:') 
+
+    subplot(length(fList)/2,2,i)
+    plot((1:nIter)*mRSVD, SS_conv(:,:,i).','-r',(1:nIter)*mRSVD,repmat(S{i},1,nIter)','k:') 
     xlabel('iterations');
     ylabel('gain');
     title('Gain convergence')

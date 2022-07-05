@@ -7,26 +7,31 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     nq        = TM_setup.n      ; 
     nq_multi  = TM_setup.n_multi;
     
-%     nf  = length(fList);
-    if mod(nf,2)==0; fList = (-((nf/2))  :(nf/2)-1 )*deltaF;
-    else           ; fList = (- (nf-1)/2 :(nf-1)/2)*deltaF;
-    end
-    fList=ifftshift(fList);
     %get block size
     if nf==1
-        T_block = dt     ;
+        T_block     = dt     ;
         n_block     = round(T_block/dt);
         i_sampling  = n_block/nf;
         i_out       = 0;
         dt_sampling = 1;
     else
-        T_block     = 1./abs(fList(2)-fList(1));
+        T_block     = 1./abs(deltaF);
         n_block     = round(T_block/dt);
+
+        D=find(mod(n_block, 1:n_block)==0); 
+        [~,i]=min((D-nf)+1e99*(D<nf));
+        nf=D(i);
+        
         i_sampling  = n_block/nf;
         dt_sampling = dt*i_sampling;
         i_out       = (0:nf-1)*i_sampling;
     end
     
+    if mod(nf,2)==0; fList = (-((nf/2))  :(nf/2)-1 )*deltaF;
+    else           ; fList = (- (nf-1)/2 :(nf-1)/2)*deltaF;
+    end
+    fList=ifftshift(fList);
+
     % Alocate input and output vectors
     f_in          = zeros(nq,mRSVD,nf,n_Iter);
     f_out         = zeros(nq,mRSVD,nf,n_Iter);

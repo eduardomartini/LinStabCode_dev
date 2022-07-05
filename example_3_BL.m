@@ -24,9 +24,8 @@ baseFlow.T_0 	= 273.15 ;       % temperature
 freq        = 0;            % frequency
 omega       = freq*2*pi;    % angular frequency for spatial stability
 alpha       = .6283;        % stream-wize wavenumber for temporal stability
-nEig        = 15;            % Arnoldi method number of eigenvalues
-
-floquetExp  = -1;          
+nEig        = 15;           % Arnoldi method number of eigenvalues
+floquetExp  = -1 ;          % Floquet exponent      
 % Domain & grid
 Nx          = 75;           % # of grid points (radial)
 Ny          = 200;           % # of grid points (streamwise)
@@ -183,28 +182,30 @@ if verbose
         plot(real(omega),imag(omega),'o')
         xlabel('$\omega_r$')
         ylabel('$\omega_i$')
-        
+        leg{1} = 'Spectra';
 %         plot(real(lambda)/alpha,imag(lambda),'ob');
         hold on
         for iiplot=iplot'
-            plot(real(omega(iiplot)),imag(omega(iiplot)),'o','handlevisibility','off');
+            plot(real(omega(iiplot)),imag(omega(iiplot)),'o');
+            leg{end+1} = num2str(omega(iiplot));
         end
         grid on
         xlabel('$\omega_r$');
         ylabel('$\omega_i$');
+        legend(leg)
     
     ndofs = size(L0,1);
     used_dofs = 1:ndofs;  used_dofs(idx_dirchlet)=[];
     U = zeros(ndofs,1);
     for iiplot=iplot'
         U=V(:,iiplot);
-        figure('name','Eigenmode')
+        figure('name',['Eigenmode alpha = ' num2str(omega(iiplot),'%.3f')])
         vars = {real(U(idx.rho_j)) ,'$\rho$'; 
                 real(U(idx.u_j  )) ,'$u$'; 
                 real(U(idx.v_j  )) ,'$v$'; 
                 real(U(idx.w_j  )) ,'$w$'; 
                 real(U(idx.T_j  )) ,'$T$' };
-        
+        title(['$\alpha' num2str(omega(iiplot)) '$']);
         axs = plotFlow(mesh.X,mesh.Y,vars,3,2,[],101,'linecolor','none');
         for i=1:length(axs)
             axs(i).YLim=[0,4];

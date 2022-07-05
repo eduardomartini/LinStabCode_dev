@@ -9,16 +9,17 @@ function [invA_fun,invA_T_fun] = GetInverseFunction(A,opts)%,tol,toliLU,maxIter,
         invA_fun    = @(v) solve(umf, v, false);
         invA_T_fun  = @(v) solve(umf_T, v, false);
     elseif strcmp(opts.type,'lu')
-        disp('Computing inverse function LU decomposition')
+        disp('Computing inverse function using a LU decomposition')
         [LL,UU,pp,qq,rr]    = lu(A);
+        LLt = LL';  UUt = UU'; ppt = pp'; qqt = qq'; rrt = rr';
         invA_fun   = @(v) qq *(UU \(LL \(pp *(rr \v))));
-        invA_T_fun = @(v) rr'\(pp'*(LL'\(UU'\(qq'*v))));
+        invA_T_fun = @(v) rrt\(ppt*(LLt\(UUt\(qqt*v))));
     elseif strcmp(opts.type,'\')
-        disp('Computing inverse function LU decomposition')
+        disp("Computing inverse function using matlab's /")
         invA_fun   = @(v) A \v ;
         invA_T_fun = @(v) A'\v ;
     elseif strcmp(opts.type,'ilu')
-        disp('Computing inverse function iLU preconditioner and an iterative method;')
+        disp('Computing inverse function using an iLU preconditioned iterative method')
         if ~isfield(opts,'maxIter') ; opts.maxIter   =100    ; end
         if ~isfield(opts,'tol'    ) ; opts.tol       =1e-6   ; end
         if ~isfield(opts,'toliLU' ) ; opts.toliLU    =1e-6   ; end

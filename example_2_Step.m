@@ -31,14 +31,15 @@ verbose     = true;         % visualize grid, base flow and results
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Cartesian mesh in computational domain
-y_symmetry      = true;     % use symmetry on y coordinate around y=0 (for axysymmetric problems)
-x_periodicity   = false;    % use periodic b.c. on x
-alpha           = .0;       % spatial filter coefficient
+y_symmetry      = true;      % use symmetry on y coordinate around y=0 
+                             % (for axysymmetric problems)
+x_periodicity   = false;     % use periodic b.c. on x
+alpha           = .0;        % spatial filter coefficient
 xrange          = [ -1 2 ];  % domain range in x
 yrange          = [ -1 1 ];  % domain range in y
 
 cmesh           = CreateMesh(xrange,yrange,Ny,Nx,FDorder, ...     
-                             y_symmetry,x_periodicity,alpha); %construct mesh
+                          y_symmetry,x_periodicity,alpha); %construct mesh
                      
 x   = cmesh.X;           % x,y: Cartesian grid coordinates
 y   = cmesh.Y;
@@ -168,5 +169,5 @@ if verbose
             real(U(idx.u_j,2)) ,'$u^{(2)}$';
             real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; 
             real(U(idx.u_j,3)) ,'$u^{(3)}$';};
-    plotFlow(mesh.X,mesh.Y,vars,3,2,mesh.usedInd)
+    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
 end

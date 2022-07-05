@@ -1,10 +1,7 @@
-function [TM_setup,TM_setup_adj,Al,Ar] = TM_BDF2_Setup(H,L,dt,maxIter,tol,toliLU,verbose)
+function [TM_setup,TM_setup_adj,Al,Ar] = TM_BDF2_Setup(H,L,dt,verbose,opts,filters)
     
-    if (~exist('maxIter') && isempty(maxIter)); maxIter   =100   ; end
-    if (~exist('tol    ') && isempty(tol    )); tol       =1e-6  ; end
-    if (~exist('toliLU ') && isempty(toliLU )); toliLU    =1e-4  ; end
+    if ~exist('opts','var')    ; opts=struct('type','ilu');end
     if (~exist('verbose') && isempty(verbose)); verbose   = 1    ; end
-    
     fprintf('Setting up 2-nd order backwards diferentiation scheme (BDF2)...');
     tic;
     n = size(L,1);
@@ -21,34 +18,24 @@ function [TM_setup,TM_setup_adj,Al,Ar] = TM_BDF2_Setup(H,L,dt,maxIter,tol,toliLU
     Al_11 = [ H-(dt*2/3)*L ];
     Ar    = [ (4/3)*H , (-1/3)*H ; I , Z ];
     
-    % Setup preconditioner for Ar, based on a pivoted iLU decomposition 
-    Pi = speye(n,1)*0;
-    Pj = speye(n,1)*0;
-
-    pj = symrcm(Al_11 ); % Other tests orderings : symrcm ,  amd,symamd,dissect,colperm,colamd
-    pi = symrcm(Al_11'); % 
     
-    for i=1:n
-        Pi(i,pj(i)) = 1; 
-        Pj(pi(i),i) = 1; 
-    end
-
-    [iLL,iUU]    = ilu(Al_11(pi,pj),struct('type','ilutp','droptol',toliLU,'milu','off'));
-
-    prec     = @(x) Pi'*(iUU \(iLL \(Pj'*(x))));
-    prec_H   = @(x) Pj *(iLL'\(iUU'\(Pi *(x)))); 
+    [invAl11_fun,invAl11_H_fun] = GetInverseFunction(Al_11,opts);
 
 
-    % Function to solve Al*x = y for x
-    if verbose==2
-        invAl_fun    = @(x) [      cgs(Al_11 ,x(1:n),tol,maxIter,prec  );x(n+1:2*n)];
-        invAl_H_fun  = @(x) [      cgs(Al_11',x(1:n),tol,maxIter,prec_H);x(n+1:2*n)];
+    if exist('filters','var') 
+        FILTER    = @(x) reshape( filters.filter   ( reshape(x,[],5)),[],1) ; 
+        FILTER_ct = @(x) reshape( filters.filter_ct( reshape(x,[],5)),[],1) ; 
     else
-        invAl_fun    = @(x) [quiet_cgs(Al_11 ,x(1:n),tol,maxIter,prec  );x(n+1:2*n)];
-        invAl_H_fun  = @(x) [quiet_cgs(Al_11',x(1:n),tol,maxIter,prec_H);x(n+1:2*n)];
+        FILTER    = @(x) x ; 
+        FILTER_ct = @(x) x ; 
     end
+
+    invAl_fun       = @(x) [ FILTER(   invAl11_fun  (x(1:n))) ; x(n+1:2*n)];
+    invAl_ct_fun    = @(x) [ FILTER_ct(invAl11_H_fun(x(1:n))) ; x(n+1:2*n)];
+
+
     Ar_fun       = @(x) Ar *x(:) ;
-    Ar_H_fun     = @(x) Ar'*x(:) ;
+    Ar_ct_fun    = @(x) Ar'*x(:) ;
     
     TM_setup.verbose       = verbose; 
     TM_setup.n             = size(L,1);
@@ -62,8 +49,8 @@ function [TM_setup,TM_setup_adj,Al,Ar] = TM_BDF2_Setup(H,L,dt,maxIter,tol,toliLU
     TM_setup.setup_f       = @(f,t) [(dt*2/3)*f( t+dt );zeros(n,1)];
 
     TM_setup_adj           = TM_setup;
-    TM_setup_adj.invAl_fun = invAl_H_fun;  
-    TM_setup_adj.Ar_fun    = Ar_H_fun;  
+    TM_setup_adj.invAl_fun = invAl_ct_fun;  
+    TM_setup_adj.Ar_fun    = Ar_ct_fun;  
 
     disp(   ['Done in ' datestr(toc/24/3600, 'HH:MM:SS')  ' \n'] )
 

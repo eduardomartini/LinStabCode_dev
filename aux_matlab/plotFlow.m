@@ -28,6 +28,7 @@ for i=1:nVars
     var(usedInd) = vars{i,1};
     
     contour_varargin = {X,Y,var,varargin{:}};
+    
     contourf(contour_varargin{:}); 
 %     contourf(X,Y,var,'linecolor','none',varargin); 
     shading interp
