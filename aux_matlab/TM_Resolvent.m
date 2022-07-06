@@ -1,4 +1,4 @@
-function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C,mRSVD)
+function [S,V,U,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_Iter,tol,W,invW,B,C,mRSVD)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
     if ~exist('mRSVD','var')     ; mRSVD=1; end
@@ -35,6 +35,7 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     % Alocate input and output vectors
     f_in          = zeros(nq,mRSVD,nf,n_Iter);
     f_out         = zeros(nq,mRSVD,nf,n_Iter);
+    q_out         = zeros(nq,mRSVD,nf,n_Iter);
 
     
     
@@ -59,6 +60,8 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
             %Apply the Resolvent operator
             flagAdj = false;
             q_hat = CRB_TM(TM_setup,fList,q0,squeeze(f_prev(:,i_m,:)),B,C,i_out,n_block,inf,tol,flagAdj);
+            
+            q_out(:,:,:,i_iter)=q_hat;
             q_hat = W*q_hat;
             
             
@@ -100,12 +103,18 @@ function [S,V,fList,SS_conv] = TM_Resolvent(TM_setup,TM_setup_adj,deltaF,nf,n_It
     for i_f = 1:nf
         F_in   = reshape( f_in  (:,:,i_f,:),nq,mRSVD*n_Iter) ;    % Inputs
         F_out  = reshape( f_out (:,:,i_f,:),nq,mRSVD*n_Iter) ;    % Output
+        Q_out  = reshape( q_out (:,:,i_f,:),nq,mRSVD*n_Iter) ;    % Output
         H = F_in'*F_out;
         
         [psi,SS]        = eig(H);
         SS              = sqrt(diag(SS));
         [S(:,i_f),order]= sort(SS,'descend');
-        V(:,:,i_f)      = F_in*psi(:,order); 
+        psi             = psi(:,order);
+        V(:,:,i_f)      = F_in *psi; 
+        U(:,:,i_f)      = Q_out*psi; 
+        for i=size(U,2)
+            U(:,i,i_f)      = U(:,i,i_f)/norm(U(:,i,i_f));
+        end
         
         for j=1:n_Iter
             SS_conv(1:j*mRSVD,j,i_f) = sort(sqrt( eig(H(1:j*mRSVD,1:j*mRSVD))) ,'descend');

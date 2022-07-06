@@ -193,9 +193,9 @@ mRSVD   = 1     ;   % Size of blocks in the iterative process
                     % large memory footprint of matlab parallelizations.
 % 
 if true
-    [Stm,~,fList,SS_conv] = TM_Resolvent(  TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
+    [Stm,Vtm,Utm,fList,SS_conv] = TM_Resolvent(  TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
 else    
-    [Stm,~,fList,SS_conv] = TM_Resolvent_2(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
+    [Stm,Vtm,Utm,fList,SS_conv] = TM_Resolvent_2(TM_setup,TM_setup_adj,deltaF,nfreqs,nIter,tol,W(ii,ii),invW(ii,ii),B(ii,ii),C(ii,ii),mRSVD);
 end
 time_tm = toc;
 
