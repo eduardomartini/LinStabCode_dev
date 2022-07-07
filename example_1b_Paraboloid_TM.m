@@ -135,7 +135,7 @@ end
 borders='ltr';  vars = 'uvwT';
 [L0,idx_dirchlet] = BC_Dirichlet(L0,idx,borders,vars);
 
-[W,invW] = GetXuEnergyNorm(mesh,baseFlow,'axy');
+[W,invW] = GetCompEnergyNorm(mesh,baseFlow,'axy');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resolvent analysis                                                     %

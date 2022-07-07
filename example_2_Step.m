@@ -131,13 +131,12 @@ end
 borders='lbtrm';  vars = 'uvwT';
 [L0,idx_dirchlet] = BC_Dirichlet(L0,idx,borders,vars);
 
-[W,invW] = GetXuEnergyNorm(mesh,baseFlow,'2D');
-W = 1;
-invW=1;
+[W,invW] = GetCompEnergyNorm(mesh,baseFlow,'2D');
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Resolvent analysis                                                     %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% dq/dt = L*q + B*v
+% dq/dt = L0*q + B*v
 % u = C*q
 % v: input/forcing, u:output/response
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

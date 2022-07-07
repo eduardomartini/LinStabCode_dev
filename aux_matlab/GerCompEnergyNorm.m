@@ -1,13 +1,13 @@
-function [Wen,invWen] = GetXuEnergyNorm(mesh,BF,model)
-    % [Wen,invWen] = GetXuEnergyNorm(mesh,BF,model)
-    % Computes the Chu energy norm, and its inverse matrix
+function [Wen,invWen] = GetCompEnergyNorm(mesh,BF,model)
+    % [Wen,invWen] = GetCompEnergyNorm(mesh,BF,model)
+    % Computes the compressible energy perturbation norm and its inverse. 
     % Inputs : 
     %   mesh : mesh structure
     %   BF   : Baseflow structure
     %   model: model used, '2D' or 'axysymmetric'
     % Outputs: 
-    %   Wen,invEn  : Xu energy norm matrix, already containing the integration
-    %               weights, and its inverse.
+    %   Wen,invEn  : Energy norm matrix, already containing the integration
+    %                weights and its inverse.
 
 if strcmp(model,'axy')
     intWeight = mesh.W .*mesh.Y; %int () r dr dz
