@@ -22,6 +22,7 @@ function [defMesh] = DeformMesh(mesh,X2,Y2,fixSquareDomain)
         
         extra_Dx_X = (x2-x1)/( max(mesh.X(:))-min(mesh.X(:)) );
     else
+        lin_X = 0;
         extra_Dx_X = 0;
     end
 
