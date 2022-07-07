@@ -23,7 +23,7 @@ Nz          = 50*2;           % # of grid points (streamwise)
 FDorder     = 4;            % finite difference order of accuracy
 
 % Flags
-verbose     = false;         % visualize grid, base flow and results
+verbose     = true;         % visualize grid, base flow and results
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create mesh and obtain differentiation matrices                        %
@@ -32,12 +32,12 @@ verbose     = false;         % visualize grid, base flow and results
 % Cartesian mesh in computational domain
 y_symmetry      = true;     % use symmetry on y coordinate around y=0 (for axysymmetric problems)
 x_periodicity   = false;    % use periodic b.c. on x
-alpha           = .1     ;    % spatial filter coefficient
+alphaFilter     = .1     ;    % spatial filter coefficient
 xrange          = [-1 0 ];  % domain range in x
-yrange          = [ 0 1 ];  % domain range in y
+yrange          = [ .1 1 ];  % domain range in y
 
 cmesh           = CreateMesh(xrange,yrange,Nz,Nr,FDorder, ...     
-                             y_symmetry,x_periodicity,alpha); %construct mesh
+                             y_symmetry,x_periodicity,alphaFilter); %construct mesh
                      
 x   = cmesh.X;           % x,y: Cartesian grid coordinates
 y   = cmesh.Y;
@@ -164,23 +164,35 @@ ii = 1:size(L0,1);
 
 tic
 verbose=true;
-% solver options
+% solver options`
+
 opts.type = 'ilu';        % uses a ilu preconditioned iterative method
     opts.verbose = true ; % prints iterative solver messages. Use it to be 
-                          % sure the solver is converging and that the 
-                          % cost/number of iterations is reasonable
+%                           sure the solver is converging and that the 
+%                           cost/number of iterations is reasonable
     opts.maxIter = 100  ; % max iterations to be performed by the solver
-    opts.tol     = 1e-8 ; % residual tolerance for the solver
-    opts.toliLU  = 1e-6 ; % drop tolerance for ilu preconditioning
+    opts.tol     = 1e-4 ; % residual tolerance for the solver
+    opts.toliLU  = 1e-3 ; % drop tolerance for ilu preconditioning
     opts.solver  = 'cgs'; % iterative solver to be used : gmres, bicg, cgs
+    opts.thresh  = .9   ; % threshold parameter for ilu decomposition
 opts.type = 'builtin';  % uses matlab internal function to solve lin. sys.
 opts.type = 'lu';       % uses a complete LU decomposition
     
 
-dt=5e-1;    
-% [TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts);
-[TM_setup,TM_setup_adj] = TM_BDF2_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts,mesh.filters);
+dt=5e-2;    
+[TM_setup,TM_setup_adj] = TM_EulerImplicit_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts);
+% [TM_setup,TM_setup_adj] = TM_BDF2_Setup(H(ii,ii),L0(ii,ii),dt,verbose,opts,mesh.filters);
 time_iLU = toc;
+
+tol     = 1e-4  ;   % tolerance for the identification of the stedy state
+
+tic
+TM(zeros(length(ii),1),@(t) 1 ,1,TM_setup,0,1,tol);
+time_1step = toc;
+[time_iLU,time_1step]
+
+
+abort
 
 tic
 nIter   = 10     ;   % number of iterations to be made

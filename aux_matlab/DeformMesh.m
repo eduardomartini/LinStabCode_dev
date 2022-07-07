@@ -54,7 +54,7 @@ function [defMesh] = DeformMesh(mesh,X2,Y2,fixSquareDomain)
 
     
     if isempty(Y2)
-        defMesh.X               = X2;
+        defMesh.X               = X2+lin_X;
 
         X2 = X2(mesh.usedInd);
     
@@ -124,8 +124,8 @@ function [defMesh] = DeformMesh(mesh,X2,Y2,fixSquareDomain)
             
         end
     else
-        defMesh.X               = X2;
-        defMesh.Y               = Y2;
+        defMesh.X               = X2+lin_X ;
+        defMesh.Y               = Y2        ;
         
         X2 = X2(mesh.usedInd);
         Y2 = Y2(mesh.usedInd);

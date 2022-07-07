@@ -25,6 +25,7 @@ function [invA_fun,invA_T_fun] = GetInverseFunction(A,opts)%,tol,toliLU,maxIter,
         if ~isfield(opts,'toliLU' ) ; opts.toliLU    =1e-6   ; end
         if ~isfield(opts,'verbose') ; opts.verbose   =false  ; end
         if ~isfield(opts,'solver' ) ; opts.solver    ='gmres'; end
+        if ~isfield(opts,'thresh' ) ; opts.thresh    =.8; end
 
 
         % Setup preconditioner for Ar
@@ -46,7 +47,8 @@ function [invA_fun,invA_T_fun] = GetInverseFunction(A,opts)%,tol,toliLU,maxIter,
 
         % Get iLU decomposition to be used as preconditioner
 %         [iLL,iUU]      = ilu(A(pi,pj),struct('type','ilutp','droptol',opts.toliLU,'milu','off'));
-        [iLL,iUU]      = ilu(A(pi,pj),struct('type','ilutp','droptol',opts.toliLU,'milu','off'));
+%         [iLL,iUU]      = ilu(A(pi,pj),struct('type','ilutp','droptol',opts.toliLU,'milu','off'));
+        [iLL,iUU]      = ilu(A(pi,pj),struct('type','ilutp','droptol',opts.toliLU,'thresh',opts.thresh));
         
         %%
         
