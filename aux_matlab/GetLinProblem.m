@@ -10,11 +10,13 @@ function [L0,idx] = GetLinProblem(mesh,BF,model,mkx,floquetExp)
     %       model       : selects cartesian  ('2D') or                        
     %                     axysimmetric       ('axi') model
     %       mkx         : provides the wavenumber in x (kx, if model='2D',
-    %           in the azymuthal number (m), if model= 'axy'
+    %                     in the azymuthal number (m), if model= 'axy'
     %       floquetExp  : floquet exponent along the z direction
     % Outputs :
     %       L0      : matrix representing the linear system dqdt = L0 q 
-    %       idx     : matrix representing the linear system dqdt = L0 q 
+    %       idx     : structure containing the indexes of the system.
+    %                   Indexes for the different varibles fields and the
+    %                   borders for each variable.
     
     if ~exist('floquetExp','var'); floquetExp=0 ;end
     tic

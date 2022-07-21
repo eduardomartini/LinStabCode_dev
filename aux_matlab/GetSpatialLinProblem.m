@@ -2,6 +2,24 @@ function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model,floquetEx
     % Constructs spatial linear operator
     % (L + omega Lw] q' = alpha R q',
     % where q' = [q; alpha q]
+    % Inputs : 
+    %       mesh        : mesh object, e.g. as obtained with CreateMesh
+    %       BF          : Baseflow object
+    %       model       : 'axy', for axisymmetric problem, or '2D', for a
+    %                     cartesian problem.
+    %       flowauetExp : Optinal argument giving the floquet exponent in
+    %                     the z direction for analysis using the Floquet
+    %                     anzats.
+    % Output : 
+    %       L,Lw,R      : Matrices representing the spatial problem in the
+    %                     expanded space [q,alpha q]
+    %       idx         : Structure containing the indexes of the system.
+    %                     Indexes for the different varibles fields and 
+    %                     the borders for each variable.
+    %      L0,R0,R1,R2  : Optinal outputs corresponding to the quadratic
+    %                     eigenproblem in the non-expanded space : 
+    %                     (w L0 - RO - alpha R1 - alpga^2 R2)q = 0
+    
     if ~exist('floquetExp','var'); floquetExp=0 ;end
 
     tic; 
@@ -23,14 +41,17 @@ function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model,floquetEx
     Z = sparse(n,n);
     I = speye(n);
     
+    
+    % Matrices representing the DR 
+    %           (w L0 - RO - alpha R1 - alpga^2 R2)q = 0
     L0 = speye(n)*-1i;
     R0 =  A_0;
     R1 = (A_p1 - A_m1)/2;
     R2 = (A_p1 - R0 - R1);
     
     % From -iw q = (R0 + alpha R1 + alpha^2 R2), construct
-    % [ 0              I   ]    [         q ]          [  I      0  ]  [         q ] 
-    % [ \omega I-R0        ]    [ alpha   q ]  = alpha [  R1     R2 ]  [ alpha   q ]
+    % [ 0          I ][        q ]         [  I  0  ]  [       q ] 
+    % [ omega I-R0   ][ alpha  q ] = alpha [  R1 R2 ]  [ alpha q ]
 
     L  = [ Z , I ;-R0 , Z ] ;
     Lw = [ Z , Z ; I  , Z ]*-1i ;
@@ -38,7 +59,7 @@ function [L,Lw,R,idx,L0,R0,R1,R2] = GetSpatialLinProblem(mesh,BF,model,floquetEx
     R = [I,Z;R1,R2];
     
     %update idx to include extended space
-    for f = fields(idx)
+    for f = fields(idx)'
         ids = idx.(f{1});
         idx.(f{1}) = [ids,ids+n];
     end

@@ -9,6 +9,14 @@ function [axs] = plotFlow(X,Y,vars,nr,nc,usedInd,varargin)
     %   label is the title of the plot
     %   nr,nc   : number of rowns and columns of subplots. nr*nc >=
     %                   size(vars,1)
+    %   usedInd (optional) : if the fields in vars do not contain all grid 
+    %                       points (e.g., when masks are used), provide 
+    %                       usedInd (typically mesh.usedInd to indicate
+    %                       the grid points used.
+    %   varargin (optional): extra arguments to contourf, used to create
+    %                        plots. E.g. 'colorline','none'.
+    % Outputs
+    %   axs     : list with references to each of the subplots axis.
     
 
 nVars   = size(vars,1);

@@ -1,5 +1,11 @@
 function [baseFlow] = sutherland_air(baseFlow)
-
+    % function sutherland_air
+    % Updates a baseflow viscosity fields based on the temperature field
+    % and sutherland's Law.
+    % 
+    % input  : baseflow
+    % output : baseflow with updated viscosity
+    
 kappa   = baseFlow.kappa;
 T_0     = baseFlow.T_0;
 Re      = baseFlow.Re;

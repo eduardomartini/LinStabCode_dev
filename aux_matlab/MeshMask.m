@@ -1,5 +1,15 @@
 function maskedMesh = MeshMask(mesh,mask)
-%MESHMASK Summary of this function goes here
+% MESHMASK Function : Masks grid points to allow non-trivial meshes
+%   NOTE : this function should be called on a mesh structure that has not
+%   yet been deformed with DeformMesh. 
+%   Inputs : 
+%       mesh : mesh structure, as created by CreateMesh
+%       mask : bollean matrix of the size of the mesh, indicating grid
+%       points that will be masked with 'false' and the ones to be kept
+%       with 'true'.
+%   Output : 
+%       maskedmesh : updated masked mesh structure 
+
 %   Detailed explanation goes here
     maskedMesh                   = mesh;
     maskedMesh.usedInd           = find(~mask);

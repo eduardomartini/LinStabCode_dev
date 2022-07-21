@@ -1,4 +1,4 @@
-function [L0,index_set] = SetBoundaryConditions(L0,idx,borders,variables,spatialprob)   
+function [L0,index_set] = BC_Dirichlet(L0,idx,borders,variables)   
     % L0,index_set] = SetBoundaryConditions(L0,idx,borders,variables)   
     % Imposes Dirichllet boundary conditions on L0 at the selected borders
     % for the choosen variables
@@ -10,15 +10,17 @@ function [L0,index_set] = SetBoundaryConditions(L0,idx,borders,variables,spatial
     %                 to be applied. For standanrt mesh, 'lrbt' indicate the 
     %                 left, right, bottom and top boundaries
     %   variables   : string array listing the variables to which the b.c. 
-    %                 are to te applied. Options,  ruvwT', for density (rho),
-    %                 the u,v,w velocities and temperature.
-    %  spatialprob  : if true, matrix is assumed to correspond to a spatial 
-    %                 stability problem.
-
-if ~exist('spatialprob','var') ; spatialprob=false; end
+    %                 are to te applied. Options, 'ruvwT', for density 
+    %                 (rho), the u,v,w velocities and temperature.
+    % Outputs: 
+    %   L0          : linear operator with Dirichlet b.c. on the selected
+    %                 dofs: L0(index_set,index_set)= I 
+    %   index_set   : ids of the dofs where b.c. were applied.
+    %   
 
 tic
-% inlet: zero value
+
+% Construct index_set, containing the dofs were b.c. will be applied
 index_set = [] ;
 for b=borders
     for v=variables 
@@ -28,18 +30,13 @@ for b=borders
     end
 end
 
+% apply b.c.
 index_set= unique(index_set(:));
-
-if spatialprob % if spatial problem, add BC to q and to alpha q
-    n                   = size(L0);
-    index_set           = [index_set(:),index_set(:)+n];
-    L0(index_set, :)    = 0;
-end
-
 L0(index_set, :) = 0;
 L0(:, index_set) = 0;
 L0(index_set, index_set)   = eye(length(index_set));
-time    = toc;
 
+
+time    = toc;
 disp(['    elapsed time - Boundary conditions: ' datestr(time/24/3600, 'HH:MM:SS')]);
 

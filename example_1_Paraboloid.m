@@ -18,8 +18,8 @@ m           = 30;           % azimuthal wave number
 nEig        = 3;            % Arnoldi method number of eigenvalues
 
 % Domain & grid
-Nr          = 100/2;           % # of grid points (radial)
-Nz          = 100/2;           % # of grid points (streamwise)
+Nr          = 50;           % # of grid points (radial)
+Nz          = 50;           % # of grid points (streamwise)
 FDorder     = 4;            % finite difference order of accuracy
 
 % Flags
@@ -33,17 +33,19 @@ verbose     = true;         % visualize grid, base flow and results
 y_symmetry      = true;     % use symmetry on y coordinate around y=0 
                             % (for axysymmetric problems)
 x_periodicity   = false;    % use periodic b.c. on x
-alpha           = 0    ;    % spatial filter coefficient
+alphaFilter     = 0    ;    % spatial filter coefficient
 xrange          = [-1 0 ];  % domain range in x
 yrange          = [ 0 1 ];  % domain range in y
 
 cmesh           = CreateMesh(xrange,yrange,Nz,Nr,FDorder, ...     
-                          y_symmetry,x_periodicity,alpha); %construct mesh
+                          y_symmetry,x_periodicity,alphaFilter); %construct mesh
                      
 x   = cmesh.X;           % x,y: Cartesian grid coordinates
 y   = cmesh.Y;
 
 % Grid transformation to parabolic sement in physical domain
+% (   Here an analytical example is used, but X and Y can also be obtained
+%        numerically )
 d   = 0.2;              % wall-normal thickness parameter
 x   = x*d-0.5;
 z   = (x+1i*y);
@@ -52,7 +54,6 @@ Y   = -imag(z.^2);
 
 %
 mesh    = DeformMesh(cmesh,X,Y);
-mesh.W  = mesh.W.*mesh.Y;   % cylindrical volume element (dV=int(rdrdz))
 
 % Plot meshes in comutational and physical domains
 if verbose
@@ -127,7 +128,7 @@ if verbose
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Set up linear operator incl. boundary conditions                       %
+%% Set up linear operator and boundary conditions                         %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %    dqdt = L0 q
 %%
@@ -157,18 +158,29 @@ B                       = spdiags(B,0,mesh.ngp*5,mesh.ngp*5);
 % Output/observable matrix
 C                       = B;    
 
-% Compute optimal forcings and responses
-[S,U,V]                 = resolvent(L0,W,invW,omega,nEig,B,C,mesh.filters);
+% Compute optimal forcings and responses with and without filters (for
+% comparison)
+[S,U,V]                 = resolvent(L0,omega,nEig,W,invW,B,C,mesh.filters);
+[S_nf,U_nf,V_nf]        = resolvent(L0,omega,nEig,W,invW,B,C);
 
 %% Plot modes and gains
 if verbose
     figure('name','Mode gains')
-    bar(S.^2);
+    bar([S,S_nf]);
     xlabel('mode');
     ylabel('gain');
     title('Resolvent gains')
+    legend('with spatial filter','w/o spatial filter')
     
-    figure('name','Resolvent forcing and response modes')
-    vars = {real(V(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U(idx.u_j,1)) ,'$u^{(1)}$';real(V(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U(idx.u_j,2)) ,'$u^{(2)}$';real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U(idx.u_j,3)) ,'$u^{(3)}$';};
-    plotFlow(mesh.X,mesh.Y,vars,3,2)
+    figure('name','Resolvent forcing and response modes with filter')
+    vars = {real(V(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U(idx.u_j,1)) ,'$u^{(1)}$';
+            real(V(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U(idx.u_j,2)) ,'$u^{(2)}$';
+            real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U(idx.u_j,3)) ,'$u^{(3)}$';};
+    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
+
+    figure('name','Resolvent forcing and response modes w.o. filter')
+    vars = {real(V_nf(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U_nf(idx.u_j,1)) ,'$u^{(1)}$';
+            real(V_nf(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U_nf(idx.u_j,2)) ,'$u^{(2)}$';
+            real(V_nf(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U_nf(idx.u_j,3)) ,'$u^{(3)}$';};
+    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
 end

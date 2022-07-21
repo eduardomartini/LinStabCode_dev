@@ -151,7 +151,7 @@ B                       = spdiags(B,0,mesh.ngp*5,mesh.ngp*5);
 C                       = B;    % ignore output temperature, density and dir.b.c. (same as for inputs)
 
 % Compute optimal forcings and responses
-[S,U,V]                 = resolvent(L0,W,invW,omega,nEig,B,C,mesh.filters);
+[S,U,V]                 = resolvent(L0,omega,nEig,W,invW,B,C,mesh.filters);
 
 %% Plot modes and gains
 if verbose
@@ -168,5 +168,5 @@ if verbose
             real(U(idx.u_j,2)) ,'$u^{(2)}$';
             real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; 
             real(U(idx.u_j,3)) ,'$u^{(3)}$';};
-    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
+    plotFlow(mesh.X,mesh.Y,vars,3,2,mesh.usedInd,'linecolor','none')
 end

@@ -25,7 +25,7 @@ freq        = 0;            % frequency
 omega       = freq*2*pi;    % angular frequency for spatial stability
 alpha       = .6283;        % stream-wize wavenumber for temporal stability
 nEig        = 15;           % Arnoldi method number of eigenvalues
-floquetExp  = -1 ;          % Floquet exponent      
+floquetExp  = -0 ;          % Floquet exponent      
 % Domain & grid
 Nx          = 75;           % # of grid points (radial)
 Ny          = 200;           % # of grid points (streamwise)
@@ -35,7 +35,7 @@ FDorder     = 4;            % finite difference order of accuracy
 % Flags
 verbose     = true;         % visualize grid, base flow and results
 temporalAna = true;
-spatialAna  = false;
+spatialAna  = true;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create mesh and obtain differentiation matrices                        %
@@ -54,18 +54,12 @@ cmesh           = CreateMesh(xrange,yrange,Nx,Ny,FDorder, ...
 X   = cmesh.X;           % x,y: Cartesian grid coordinates
 Y   = cmesh.Y;
 
-yi= 2.0; %dns_scale*delta ; % Hanifi ?
-ymax=8 ; % Hanifi used from 100 to 500
-a= yi*ymax/(ymax-2*yi);
-b= 1+2*a/ymax;
+% Mapping function as in Hanifi 1996 and mesh deformation
+yi = 2.0                ; ymax = 8 ; 
+a  = yi*ymax/(ymax-2*yi); b    = 1+2*a/ymax;
+Y=a*(1+Y)./(b-Y);  
 
-Y=a*(1+Y)./(b-Y);  % Stretch to semi-infinite domain
-
-%
 mesh    = DeformMesh(cmesh,[],Y,true);
-
-% mesh    = DeformMesh(cmesh,X,Y,true);
-% mesh    = cmesh;
 
 % Plot meshes in comutational and physical domains
 if verbose
@@ -161,8 +155,6 @@ if temporalAna
     %setup eigs options
     opts.tol    = 1e-8;
     opts.disp   = 2;
-%     opts.issym  = false;
-%     opts.isreal = false;
     opts.p      = 300;
 
 
@@ -172,46 +164,46 @@ if temporalAna
     omega=diag(omega);
     time_eigsMatlab = toc;
 
-%% Plot and compare eigenvalues. Show some eigen vectors
-if verbose    
-    [~,iplot] = sort(imag(omega),"descend");
-    iplot=iplot(1:4);
-    
-%     [~,iplot]=min(abs(lambda-(.9*alpha+.10i)));
-    figure('name','Temporal Spectra');
-        plot(real(omega),imag(omega),'o')
-        xlabel('$\omega_r$')
-        ylabel('$\omega_i$')
-        leg{1} = 'Spectra';
-%         plot(real(lambda)/alpha,imag(lambda),'ob');
-        hold on
+    %% Plot and compare eigenvalues. Show some eigen vectors
+    if verbose    
+        [~,iplot] = sort(imag(omega),"descend");
+        iplot=iplot(1:4);
+
+    %     [~,iplot]=min(abs(lambda-(.9*alpha+.10i)));
+        figure('name','Temporal Spectra');
+            plot(real(omega),imag(omega),'o')
+            xlabel('$\omega_r$')
+            ylabel('$\omega_i$')
+            
+            leg{1} = 'Spectra';
+            hold on
+            for iiplot=iplot'
+                plot(real(omega(iiplot)),imag(omega(iiplot)),'o');
+                leg{end+1} = num2str(omega(iiplot));
+            end
+            grid on
+            xlabel('$\omega_r$');
+            ylabel('$\omega_i$');
+            legend(leg)
+
+        ndofs = size(L0,1);
+        used_dofs = 1:ndofs;  used_dofs(idx_dirchlet)=[];
+        U = zeros(ndofs,1);
         for iiplot=iplot'
-            plot(real(omega(iiplot)),imag(omega(iiplot)),'o');
-            leg{end+1} = num2str(omega(iiplot));
-        end
-        grid on
-        xlabel('$\omega_r$');
-        ylabel('$\omega_i$');
-        legend(leg)
-    
-    ndofs = size(L0,1);
-    used_dofs = 1:ndofs;  used_dofs(idx_dirchlet)=[];
-    U = zeros(ndofs,1);
-    for iiplot=iplot'
-        U=V(:,iiplot);
-        figure('name',['Eigenmode alpha = ' num2str(omega(iiplot),'%.3f')])
-        vars = {real(U(idx.rho_j)) ,'$\rho$'; 
-                real(U(idx.u_j  )) ,'$u$'; 
-                real(U(idx.v_j  )) ,'$v$'; 
-                real(U(idx.w_j  )) ,'$w$'; 
-                real(U(idx.T_j  )) ,'$T$' };
-        title(['$\alpha' num2str(omega(iiplot)) '$']);
-        axs = plotFlow(mesh.X,mesh.Y,vars,3,2,[],101,'linecolor','none');
-        for i=1:length(axs)
-            axs(i).YLim=[0,4];
+            U=V(:,iiplot);
+            figure('name',['Eigenmode alpha = ' num2str(omega(iiplot),'%.3f')])
+            vars = {real(U(idx.rho_j)) ,'$\rho$'; 
+                    real(U(idx.u_j  )) ,'$u$'; 
+                    real(U(idx.v_j  )) ,'$v$'; 
+                    real(U(idx.w_j  )) ,'$w$'; 
+                    real(U(idx.T_j  )) ,'$T$' };
+            title(['$\alpha' num2str(omega(iiplot)) '$']);
+            axs = plotFlow(mesh.X,mesh.Y,vars,3,2,[],101,'linecolor','none');
+            for i=1:length(axs)
+                axs(i).YLim=[0,4];
+            end
         end
     end
-end
 end    
     
 %% Spatial Stability Analysis
@@ -221,9 +213,9 @@ if spatialAna
     % Enforce Dirichlet b,c on the top, right and left boundaries, for u,v,w
     % and T
     borders='tb';  vars = 'uvwT';
-    [~,idx_dirchlet] = BC_Dirichlet(L,idx,borders,vars,true);
+    [~,idx_dirchlet] = BC_Dirichlet(L,idx,borders,vars);
 
-    w = 2*pi*0.09;          % frequency for spatial stability analysis
+    w = 0.55658 + 0.0081601i %2*pi*0.09;          % frequency for spatial stability analysis
     alpha_target = alpha;   % target alpha (around which we look for modes)
 
     %remove lines and rows corresponding to BCs.
@@ -234,31 +226,12 @@ if spatialAna
 
     alphas = eigs(LL,RR,nEig,alpha_target,opts);
 
-    %%
-    figure('name','Spatial spectra')
-        plot(real(alphas),imag(alphas),'ob')
-        xlabel('$\alpha_r$');
-        ylabel('$\alpha_i$');
-        grid on;
-end
-
-%% Print memory log
-if measure_memory
-    profile report
-    p = profile('info');
-
-    %%
-    n= length(p.FunctionTable);
-    for i=1:n
-        if strcmp(p.FunctionTable(i).FunctionName , 'resolvent')
-            MatrixTime = p.FunctionTable(i).TotalTime;
-            MatrixMem  = p.FunctionTable(i).PeakMem;        
-        end
-        if strcmp(p.FunctionTable(i).FunctionName , 'TM_Resolvent')
-            MatrixfreeTime = p.FunctionTable(i).TotalTime;
-            MatrixfreeMem  = p.FunctionTable(i).PeakMem;        
-        end
-    end
-    dlmwrite('example5_mem_history.csv',[Nr,Nz,MatrixTime,MatrixMem,MatrixfreeTime,MatrixfreeMem,dt],'-append')
-end
     
+    if verbose
+        figure('name','Spatial spectra')
+            plot(real(alphas),imag(alphas),'ob')
+            xlabel('$\alpha_r$');
+            ylabel('$\alpha_i$');
+            grid on;
+    end
+end

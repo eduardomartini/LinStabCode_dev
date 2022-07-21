@@ -26,10 +26,9 @@ function mesh = CreateMesh(xrange,yrange,Nx,Ny,FDorder,y_symmetry,x_periodicity,
     %   (FILTER_CT) spatial filters
     %   mesh.W      : integration weights
     %   mesh.D*     : first and second order differentiation matrices
-    %   mesh.W_*,mesh.D*_*  : integration weights and differentiation
+    %   mesh.*_sym/asym  : integration weights and differentiation
     %   matrices assuming symmetry/anti-symmetry around the y axis.
     
-    % matrices and integration weights.
 
     % Correct domain length to avoid points on the symmetry line
     if (y_symmetry==true && yrange(1)==0)

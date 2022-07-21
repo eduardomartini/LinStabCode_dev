@@ -1,10 +1,21 @@
-function [S,U,V] = resolvent(L0,W,invW,omega,nEig,B,C,filters)
+function [S,U,V] = resolvent(L0,omega,nEig,W,invW,B,C,filters)
 % [gain,U_out,V_in] = ResAnalysis(LHS,RHS,F,omega,noEigs,B,C)
 % Performs classical resolvent analysis using "eigs" function of the
 % linear operator H=(L0-i*omega)^-1 using input and output matrices
 % given by B and C. The adjoint is obtained with respect to the norm W.
 % Inputs :
+%     L0     : Corresponding time domain operator (with b.c. already
+%               imposed)
+%     omega  : Freauency (in rads) of the analysis
 %     noEigs : number of eigen values desired.
+% Optional inputs;
+%     W,invW : Matrix containing the metric and its inverse. (default = 1)
+%     B,C    : Forcing and observation matrices (default = 1)
+%     filters: Structure containing a functions that applies a spatial 
+%              filter and its transpose to a vector. It will be to be used 
+%              before and after the resolvent operator to filter out junk 
+%              modes. Typically obtained from "mesh.filters".
+%              (Default=no filter)
 % Outputs :
 %     S : singular values (sqrt. of gains)
 %     U : optimal outputs/responses
@@ -15,6 +26,13 @@ nDOF    = size(L0,1);
 
 disp(['    computing resolvent analysis for omega=' num2str(omega)]);
 
+if ~exist('W','var')    ;    W=1; end
+if ~exist('invW','var') ; invW=1; end
+if ~exist('B','var')    ;    B=1; end
+if ~exist('C','var')    ;    C=1; end
+
+% Correct integration weights shape (if a vector was given, convert to
+% diagonal matrix)
 if (size(W,1)==1 && size(W,2)==1)
     disp('Using a scalar metric.')
 elseif (size(W,1)==1 || size(W,2)==1)
