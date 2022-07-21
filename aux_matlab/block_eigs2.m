@@ -114,7 +114,7 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
     %         resHist(1:i_kirlov+1,end+1)=sort(abs(res));
             p=(abs(res(1:i_kirlov))>tol);
             n_conv = sum(~p);
-            fprintf('Iter %d, %d , %d convergend modes. Min res %e , min non-converged res %e, |fk|=%e \n',i_iter,i_curr(end),n_conv,min(res),min(res(p)),norm(fk(:,end)));
+            fprintf('Iter %d, %d , %d convergend modes. Min non-converged res %e, |fk|=%e \n',i_iter,i_curr(end),n_conv,min(res(p)),norm(fk(:,end)));
             if (n_conv >= neigs) 
                 V       = v(:,1:i_kirlov)*psi;
                 LAMBDA  = lambda;
@@ -134,21 +134,63 @@ function [V,LAMBDA_conv,LAMBDA_all,res,resHist] = block_eigs2(applyOP,n,neigs,nk
     
     ilamb = 0;
     Q = eye(size(H));
+    
+    vbak = v;
+    wbak = w;
+%%
+   
+% v=vbak;
+% w=wbak;
+% H = w'*v;
+% i_kirlov=300,
+%     for i=1:mkirlov
+%         l = lambdatar(i);
+% %         H0 = H;
+%         [Q,R] = qr(H(1:i_kirlov,1:i_kirlov)-eye(i_kirlov)*l);
+%         
+%         v(:,1:i_kirlov) = v(:,1:i_kirlov)*Q;
+%         w(:,1:i_kirlov) = w(:,1:i_kirlov)*Q;
+%     
+%         v(:,i_kirlov) = 0 ;
+%         w(:,i_kirlov) = 0 ;
+% 
+%         H(1:i_kirlov,1:i_kirlov) = R*Q+l*eye(i_kirlov);
+%         i_kirlov = i_kirlov-1;
+%         Qh{i}=Q;
+% %         H2(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);        
+%     end 
+%          
+%     v1 = v;
+%     w1 = w;
+% 
+%     H1=H;
+%     Q1=Q;
+%%   
+% v=vbak;
+% w=wbak;
+% H = w'*v;
+% i_kirlov=300;
+
+    Q = eye(size(H));
     for i=1:mkirlov
         l = lambdatar(i);
 %         H0 = H;
-        [Q,R] = qr(H(1:i_kirlov,1:i_kirlov)-eye(i_kirlov)*l);
-        
-        v(:,1:i_kirlov) = v(:,1:i_kirlov)*Q;
-        w(:,1:i_kirlov) = w(:,1:i_kirlov)*Q;
-    
-        v(:,i_kirlov) = 0 ;
-        w(:,i_kirlov) = 0 ;
+        [Qcurr,Rcurr] = qr(H(1:i_kirlov,1:i_kirlov)-eye(i_kirlov)*l);
+      
+        Z=Q*0;
+        Z(1:i_kirlov,1:i_kirlov) = Qcurr;
+        Q=Q*Z;
+
+        H(1:i_kirlov,1:i_kirlov) = Rcurr*Qcurr+l*eye(i_kirlov);
         i_kirlov = i_kirlov-1;
-        
-        H(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);        
+%         Qh2{i}=Qcurr;
+%         H2(1:i_kirlov,1:i_kirlov)  = v(:,1:i_kirlov)'*w(:,1:i_kirlov);        
     end 
-        
+    v = v*Q;
+    w = w*Q; 
+%     e=v1-v;e(1:5,1:5)
+%     max(eig(H)-eig(H1))
+%%     
     %Stabilizes the method
     
     [v(:,1:i_kirlov),R]     = qr(v(:,1:i_kirlov),0);

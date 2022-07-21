@@ -52,27 +52,28 @@ function [invA_fun,invA_T_fun] = GetInverseFunction(A,opts)%,tol,toliLU,maxIter,
         
         %%
         
-%         prec     = @(x) Pi'*(iUU \(iLL \(Pj'*(x))));
-%         prec_H   = @(x) Pj *(iLL'\(iUU'\(Pi *(x)))); 
+        prec     = @(x) Pi'*(iUU \(iLL \(Pj'*(x))));
+        prec_H   = @(x) Pj *(iLL'\(iUU'\(Pi *(x)))); 
 
         % Function to solve Al*x = y for x
         if opts.verbose
             if strcmp('bicg',opts.solver)
-                invA_fun    = @(x)   Pi'*bicg(A(pi,pj)  ,Pj'*x,opts.tol,opts.maxIter,iLL ,iUU );
-                invA_T_fun  = @(x)   Pj *bicg(A(pi,pj)' ,Pi *x,opts.tol,opts.maxIter,iUU',iLL');            
+                invA_fun    = @(x)  Pi'*bicg(A(pi,pj) ,Pj'*x,opts.tol,opts.maxIter,iLL,iUU);
+                invA_T_fun  = @(x)  Pj *bicg(A(pi,pj)',Pi *x,opts.tol,opts.maxIter,iUU',iLL');
             elseif  strcmp('cgs',opts.solver)
-                invA_fun    = @(x)   Pi'* cgs(A(pi,pj)  ,Pj'*x,opts.tol,opts.maxIter,iLL ,iUU );
-                invA_T_fun  = @(x)   Pj * cgs(A(pi,pj)' ,Pi *x,opts.tol,opts.maxIter,iUU',iLL');
+                invA_fun    = @(x)  Pi'*cgs(A(pi,pj) ,Pj'*x,opts.tol,opts.maxIter,iLL,iUU);
+                invA_T_fun  = @(x)  Pj *cgs(A(pi,pj)',Pi *x,opts.tol,opts.maxIter,iUU',iLL');
             elseif strcmp('gmres',opts.solver)
-                invA_fun    = @(x)   Pi *gmres(A(pi,pj) ,Pj'*x,[],opts.tol,opts.maxIter,iLL ,iUU );
-                invA_T_fun  = @(x)   Pj'*gmres(A(pi,pj)',Pi *x,[],opts.tol,opts.maxIter,iUU',iLL');
+                invA_fun    = @(x)  Pi'*gmres(A(pi,pj) ,Pj'*x,[],opts.tol,opts.maxIter,iLL ,iUU );
+%                 invA_fun    = @(x)   gmres(A ,x,[],opts.tol,opts.maxIter,prec);
+                invA_T_fun  = @(x)  Pj *gmres(A(pi,pj)',Pi *x,[],opts.tol,opts.maxIter,iUU',iLL');
             end
         else
             if strcmp('bicg',opts.solver)
                 invA_fun    = @(x) Pi'*quiet_iterative(@bicg,A(pi,pj)  ,Pj'*x,opts.tol,opts.maxIter,iLL ,iUU );
-                invA_T_fun  = @(x) Pj *quiet_iterative(@bicg,A(pi,pj)' ,Pi *x,opts.tol,opts.maxIter,iUU',iLL');            
+                invA_T_fun  = @(x) Pj *quiet_iterative(@bicg,A(pi,pj)' ,Pi *x,opts.tol,opts.maxIter,iUU',iLL'); 
             elseif  strcmp('cgs',opts.solver)
-                invA_fun    = @(x) Pi'*quiet_iterative(@cgs,A(pi,pj)   ,Pj'*x,opts.tol,opts.maxIter,iLL ,iUU);
+                invA_fun    = @(x) Pi'*quiet_iterative(@cgs,A(pi,pj)   ,Pj'*x,opts.tol,opts.maxIter,iLL ,iUU ) 
                 invA_T_fun  = @(x) Pj *quiet_iterative(@cgs,A(pi,pj)'  ,Pi *x,opts.tol,opts.maxIter,iUU',iLL');
             elseif strcmp('gmres',opts.solver)
                 invA_fun    = @(x) Pi'*quiet_iterative(@gmres,A(pi,pj) ,Pj'*x,[],opts.tol,opts.maxIter,iLL ,iUU );
