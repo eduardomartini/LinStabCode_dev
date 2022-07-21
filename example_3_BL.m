@@ -229,7 +229,7 @@ if spatialAna
     
     if verbose
         figure('name','Spatial spectra')
-            plot(real(alphas),imag(alphas),'ob')
+            plot(real(alphas),imag(alphas),'ob');
             xlabel('$\alpha_r$');
             ylabel('$\alpha_i$');
             grid on;

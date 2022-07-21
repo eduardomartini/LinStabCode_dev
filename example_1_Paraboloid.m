@@ -176,11 +176,11 @@ if verbose
     vars = {real(V(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U(idx.u_j,1)) ,'$u^{(1)}$';
             real(V(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U(idx.u_j,2)) ,'$u^{(2)}$';
             real(V(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U(idx.u_j,3)) ,'$u^{(3)}$';};
-    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
+    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none');
 
     figure('name','Resolvent forcing and response modes w.o. filter')
     vars = {real(V_nf(idx.u_j,1)) ,'$f_u^{(1)}$'; real(U_nf(idx.u_j,1)) ,'$u^{(1)}$';
             real(V_nf(idx.u_j,2)) ,'$f_u^{(2)}$'; real(U_nf(idx.u_j,2)) ,'$u^{(2)}$';
             real(V_nf(idx.u_j,3)) ,'$f_u^{(3)}$'; real(U_nf(idx.u_j,3)) ,'$u^{(3)}$';};
-    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none')
+    plotFlow(mesh.X,mesh.Y,vars,3,2,[],'linecolor','none');
 end
